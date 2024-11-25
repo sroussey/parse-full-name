@@ -79,6 +79,10 @@ describe('parse-full-name', function () {
         ['', 'Sammy', '', 'Davis', '', 'Jr.', []]);
       verifyName(parseFullName('Davis, Sammy, Jr.'),
         ['', 'Sammy', '', 'Davis', '', 'Jr.', []]);
+      verifyName(parseFullName('Dr. Dr.med.dent. Hans Zimmer'),
+        ['Dr.', 'Hans', '', 'Zimmer', '', 'Dr.med.dent.', []]);
+      verifyName(parseFullName('dipl.-ing. Hans Zimmer', 'all', 1),
+        ['', 'Hans', '', 'Zimmer', '', 'Dipl.-Ing.', []]);
     });
     it('parses unknown suffixes', function () {
       verifyName(parseFullName('John P. Doe-Ray, Jr., LUTC'),

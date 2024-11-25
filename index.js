@@ -39,7 +39,7 @@ exports.parseFullName = function parseFullName(
   function fixParsedNameCase(fixedCaseName, fixCaseNow) {
     var forceCaseList = ['e', 'y', 'av', 'af', 'da', 'dal', 'de', 'del', 'der', 'di',
       'la', 'le', 'van', 'der', 'den', 'vel', 'von', 'II', 'III', 'IV', 'J.D.', 'LL.M.',
-      'M.D.', 'D.O.', 'D.C.', 'Ph.D.'];
+      'M.D.', 'D.O.', 'D.C.', 'Ph.D.', 'Dipl.-Ing.'];
     var forceCaseListIndex;
     var namePartLabels = [];
     var namePartWords;
@@ -139,25 +139,25 @@ exports.parseFullName = function parseFullName(
     'b.sc.', // Bachelor of Science
     'di', // Diplom
     'dipl.-ing.', // Diplom-Ingenieur
-    'mag. med. vet.', // Magister Medicinae Veterinariae
-    'dr. med. dent.', // Doctor Medicinae Dentariae
-    'mag. rer. nat.', // Magister Rerum Naturalium
-    'mag. phil.', // Magister Philosophiae
-    'mag. iur.', // Magister Iuris
+    'mag.med.vet.', // Magister Medicinae Veterinariae
+    'dr.med.dent.', // Doctor Medicinae Dentariae
+    'mag.rer.nat.', // Magister Rerum Naturalium
+    'mag.phil.', // Magister Philosophiae
+    'mag.iur.', // Magister Iuris
     'm.a.i.s.', // Master of Advanced International Studies
     'llm', // Master of Laws
     'll.m.', // Master of Laws
     'msc', // Master of Science
     'm.sc.', // Master of Science
     'phd', // Doctor of Philosophy
-    'dr. nat. techn.', // Doctor Naturae Technologiae
-    'dr. scient. med.', // Doctor Scientiae Medicinae
-    'dr. mont.', // Doctor Montium
-    'dr. rer. nat.', // Doctor Rerum Naturalium
-    'dr. phil.', // Doctor Philosophiae
-    'dr. iur.', // Doctor Iuris
-    'dr. rer. soc. oec.', // Doctor Rerum Societatis Oeconomicarum
-    'dr. theol.', // Doctor Theologiae
+    'dr.nat.techn.', // Doctor Naturae Technologiae
+    'dr.scient.med.', // Doctor Scientiae Medicinae
+    'dr.mont.', // Doctor Montium
+    'dr.rer.nat.', // Doctor Rerum Naturalium
+    'dr.phil.', // Doctor Philosophiae
+    'dr.iur.', // Doctor Iuris
+    'dr.rer.soc.oec.', // Doctor Rerum Societatis Oeconomicarum
+    'dr.theol.', // Doctor Theologiae
     'm.e.s.', // Master of Environmental Studies
     'mas', // Master of Applied Science
     'ma', // Master of Arts
@@ -305,6 +305,7 @@ exports.parseFullName = function parseFullName(
       }
     }
   }
+
   partsFoundCount = partsFound.length;
   if (partsFoundCount === 1) {
     parsedName.title = partsFound[0];
@@ -385,6 +386,9 @@ exports.parseFullName = function parseFullName(
   }
 
   // First name: remove and store first part as first name
+  if (suffixList.includes(nameParts[0].toLowerCase())) {
+    parsedName.suffix = nameParts.shift();
+  }
   parsedName.first = nameParts.shift();
   if (!nameParts.length) {
     parsedName = fixParsedNameCase(parsedName, fixCase);
