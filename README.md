@@ -1,8 +1,6 @@
-# parse-full-name
+# parse-full-name-plus
 
-[![Build](https://travis-ci.org/dschnelldavis/parse-full-name.svg?branch=master)](https://travis-ci.org/dschnelldavis/parse-full-name)
-[![Dependencies](https://david-dm.org/dschnelldavis/parse-full-name.svg)](https://david-dm.org/dschnelldavis/parse-full-name)
-[![Vulnerabilities](https://snyk.io/test/npm/parse-full-name/badge.svg?style=flat-square)](https://snyk.io/test/npm/parse-full-name)
+[![npm version](https://badge.fury.io/js/parse-full-name-plus.svg)](https://badge.fury.io/js/parse-full-name-plus)
 
 ## Description
 
@@ -16,24 +14,24 @@ parseFullName():
 2. analyzes and attempts to detect the format of that name,
 3. (if possible) parses the name into its component parts, and
 4. (by default) returns an object containing all individual parts of the name:
-    - title (string): title(s) (e.g. "Ms." or "Dr.")
-    - first (string): first name or initial
-    - middle (string): middle name(s) or initial(s)
-    - last (string): last name or initial
-    - nick (string): nickname(s)
-    - suffix (string): suffix(es) (e.g. "Jr.", "II", or "Esq.")
-    - error (array of strings): any parsing error messages
+   - title (string): title(s) (e.g. "Ms." or "Dr.")
+   - first (string): first name or initial
+   - middle (string): middle name(s) or initial(s)
+   - last (string): last name or initial
+   - nick (string): nickname(s)
+   - suffix (string): suffix(es) (e.g. "Jr.", "II", or "Esq.")
+   - error (array of strings): any parsing error messages
 
 Optionally, parseFullName() can also:
 
-* return only the specified part of a name as a string (or errors as an array)
-* always fix or ignore the letter case of the returned parts (the default is
-    to fix the case only when the original input is all upper or all lowercase)
-* stop on errors (the default is to return warning messages in the output,
-    but never throw a JavaScript error, no matter how mangled the input)
-* detect more variations of name prefixes, suffixes, and titles (the default
-    detects 29 prefixes, 19 suffixes, 16 titles, and 8 conjunctions, but it
-    can be set to detect 97 prefixes, 23 suffixes, and 204 titles instead)
+- return only the specified part of a name as a string (or errors as an array)
+- always fix or ignore the letter case of the returned parts (the default is
+  to fix the case only when the original input is all upper or all lowercase)
+- stop on errors (the default is to return warning messages in the output,
+  but never throw a JavaScript error, no matter how mangled the input)
+- detect more variations of name prefixes, suffixes, and titles (the default
+  detects 29 prefixes, 19 suffixes, 16 titles, and 8 conjunctions, but it
+  can be set to detect 97 prefixes, 23 suffixes, and 204 titles instead)
 
 If this is not what you're looking for, is overkill for your application, or
 is in the wrong language, check the "Credits" section at the end of this file
@@ -44,13 +42,13 @@ for links to several other excellent parsers which may suit your needs better.
 ### Basic Use
 
 ```javascript
-var parseFullName = require('parse-full-name').parseFullName;
+var parseFullName = require("parse-full-name").parseFullName;
 
-name = parseFullName('Mr. David Davis');
+name = parseFullName("Mr. David Davis");
 
-assert.strictEqual(name.title, 'Mr.');
-assert.strictEqual(name.first, 'David');
-assert.strictEqual(name.last, 'Davis');
+assert.strictEqual(name.title, "Mr.");
+assert.strictEqual(name.first, "David");
+assert.strictEqual(name.last, "Davis");
 ```
 
 ### Options
@@ -61,30 +59,30 @@ nameToParse (string, required): the name to be parsed
 
 partToReturn (string, optional): the name of a single part to return
 
-  - 'all' (default) = return an object containing all name parts
-  - 'title' = return only the title(s) as a string (or an empty string)
-  - 'first' = return only the first name as a string (or an empty string)
-  - 'middle' = return only the middle name(s) as a string (or an empty string)
-  - 'last' = return only the last name as a string (or an empty string)
-  - 'nick' = return only the nickname(s) as a string (or an empty string)
-  - 'suffix' = return only the suffix(es) as a string (or an empty string)
-  - 'error' = return only the array of parsing error messages (or an empty array)
+- 'all' (default) = return an object containing all name parts
+- 'title' = return only the title(s) as a string (or an empty string)
+- 'first' = return only the first name as a string (or an empty string)
+- 'middle' = return only the middle name(s) as a string (or an empty string)
+- 'last' = return only the last name as a string (or an empty string)
+- 'nick' = return only the nickname(s) as a string (or an empty string)
+- 'suffix' = return only the suffix(es) as a string (or an empty string)
+- 'error' = return only the array of parsing error messages (or an empty array)
 
 fixCase (integer, optional): fix case of output name
 
-  - -1 (default) = fix case only if input name is all upper or lowercase
-  - 0 or false = never fix the case (retain and output same case as input name)
-  - 1 or true = always fix case of output, even if input is mixed case
+- -1 (default) = fix case only if input name is all upper or lowercase
+- 0 or false = never fix the case (retain and output same case as input name)
+- 1 or true = always fix case of output, even if input is mixed case
 
 stopOnError (integer, optional): makes parsing errors throw JavaScript errors
 
-  - 0 or false (default) = return warnings about parsing errors, but continue
-  - 1 or true = if a parsing error is found, throw a JavaScript error
+- 0 or false (default) = return warnings about parsing errors, but continue
+- 1 or true = if a parsing error is found, throw a JavaScript error
 
 useLongLists (integer, optional): use long prefix, suffix, and title lists
 
-  - 0 or false (default) = use default lists (29 prefixes, 19 suffixes, 16 titles)
-  - 1 or true = use experimental long lists (97 prefixes, 23 suffixes, 204 titles)
+- 0 or false (default) = use default lists (29 prefixes, 19 suffixes, 16 titles)
+- 1 or true = use experimental long lists (97 prefixes, 23 suffixes, 204 titles)
   Note: The alternate long lists are experimental and have not been tested.
   Be especially careful using the long prefix list, which may incorrectly
   detect "Ben" as a prefix, which is common in middle-eastern names,
@@ -93,16 +91,22 @@ useLongLists (integer, optional): use long prefix, suffix, and title lists
 ### Advanced Use
 
 ```javascript
-var parseFullName = require('parse-full-name').parseFullName;
+var parseFullName = require("parse-full-name").parseFullName;
 
-name = parseFullName('DE LORENZO Y GUTIEREZ, Mr. JÜAN MARTINEZ (MARTIN) Jr.','all',1,0,0);
+name = parseFullName(
+  "DE LORENZO Y GUTIEREZ, Mr. JÜAN MARTINEZ (MARTIN) Jr.",
+  "all",
+  1,
+  0,
+  0
+);
 
-assert.strictEqual(name.title, 'Mr.');
-assert.strictEqual(name.first, 'Jüan');
-assert.strictEqual(name.middle, 'Martinez');
-assert.strictEqual(name.last, 'de Lorenzo y Gutierez');
-assert.strictEqual(name.nick, 'Martin');
-assert.strictEqual(name.suffix, 'Jr.');
+assert.strictEqual(name.title, "Mr.");
+assert.strictEqual(name.first, "Jüan");
+assert.strictEqual(name.middle, "Martinez");
+assert.strictEqual(name.last, "de Lorenzo y Gutierez");
+assert.strictEqual(name.nick, "Martin");
+assert.strictEqual(name.suffix, "Jr.");
 assert.strictEqual(name.error, []);
 ```
 
