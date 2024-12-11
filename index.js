@@ -108,6 +108,10 @@ exports.parseFullName = function parseFullName(
   // Initilize lists of prefixs, suffixs, and titles to detect
   // Note: These list entries must be all lowercase
   suffixList = [
+    'dr', // Doctor
+    'doctor', // Doctor
+    'prof', // Professor
+    'professor', // Professor
     'esq', // Esquire
     'esquire', // Esquire
     'jr', // Junior
@@ -259,35 +263,7 @@ exports.parseFullName = function parseFullName(
     nameCommas.push(comma);
   }
 
-  // Suffix: remove and store matching parts as suffixes
-  for (l = nameParts.length, i = l - 1; i > 0; i--) {
-    partToCheck = (nameParts[i].slice(-1) === '.' ?
-      nameParts[i].slice(0, -1).toLowerCase() : nameParts[i].toLowerCase());
-    if (
-      suffixList.indexOf(partToCheck) > -1 ||
-      suffixList.indexOf(partToCheck + '.') > -1
-    ) {
-      partsFound = nameParts.splice(i, 1).concat(partsFound);
-      if (nameCommas[i] === ',') { // Keep comma, either before or after
-        nameCommas.splice(i + 1, 1);
-      } else {
-        nameCommas.splice(i, 1);
-      }
-    }
-  }
-  partsFoundCount = partsFound.length;
-  if (partsFoundCount === 1) {
-    parsedName.suffix = partsFound[0];
-    partsFound = [];
-  } else if (partsFoundCount > 1) {
-    handleError(partsFoundCount + ' suffixes found');
-    parsedName.suffix = partsFound.join(', ');
-    partsFound = [];
-  }
-  if (!nameParts.length) {
-    parsedName = fixParsedNameCase(parsedName, fixCase);
-    return partToReturn === 'all' ? parsedName : parsedName[partToReturn];
-  }
+
 
   // Title: remove and store matching parts as titles
   for (l = nameParts.length, i = l - 1; i >= 0; i--) {
@@ -313,6 +289,36 @@ exports.parseFullName = function parseFullName(
   } else if (partsFoundCount > 1) {
     handleError(partsFoundCount + ' titles found');
     parsedName.title = partsFound.join(', ');
+    partsFound = [];
+  }
+  if (!nameParts.length) {
+    parsedName = fixParsedNameCase(parsedName, fixCase);
+    return partToReturn === 'all' ? parsedName : parsedName[partToReturn];
+  }
+
+  // Suffix: remove and store matching parts as suffixes
+  for (l = nameParts.length, i = l - 1; i > 0; i--) {
+    partToCheck = (nameParts[i].slice(-1) === '.' ?
+      nameParts[i].slice(0, -1).toLowerCase() : nameParts[i].toLowerCase());
+    if (
+      suffixList.indexOf(partToCheck) > -1 ||
+      suffixList.indexOf(partToCheck + '.') > -1
+    ) {
+      partsFound = nameParts.splice(i, 1).concat(partsFound);
+      if (nameCommas[i] === ',') { // Keep comma, either before or after
+        nameCommas.splice(i + 1, 1);
+      } else {
+        nameCommas.splice(i, 1);
+      }
+    }
+  }
+  partsFoundCount = partsFound.length;
+  if (partsFoundCount === 1) {
+    parsedName.suffix = partsFound[0];
+    partsFound = [];
+  } else if (partsFoundCount > 1) {
+    handleError(partsFoundCount + ' suffixes found');
+    parsedName.suffix = partsFound.join(', ');
     partsFound = [];
   }
   if (!nameParts.length) {
