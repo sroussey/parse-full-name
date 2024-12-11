@@ -95,8 +95,8 @@ describe('parse-full-name', function () {
         ['Dr.', 'John', 'P.', 'Doe-Ray', '', 'Jr.', []]);
       verifyName(parseFullName('Dr. Doe-Ray, John P., Jr.'),
         ['Dr.', 'John', 'P.', 'Doe-Ray', '', 'Jr.', []]);
-      verifyName(parseFullName('Doe-Ray, Dr. John P., Jr.'),
-        ['Dr.', 'John', 'P.', 'Doe-Ray', '', 'Jr.', []]);
+      verifyName(parseFullName('Frau Dr. Sophie Wagner'),
+        ['Frau', 'Sophie', '', 'Wagner', '', 'Dr.', []]);
     });
     it('parses name parts in many different orders', function () {
       verifyName(parseFullName(

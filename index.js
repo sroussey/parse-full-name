@@ -211,7 +211,8 @@ exports.parseFullName = function parseFullName(
       'sr d', 'sra', 'srta', 'sultan', 'tan sri', 'tan sri dato', 'tengku', 'teuku',
       'than puying', 'the hon dr', 'the hon justice', 'the hon miss', 'the hon mr',
       'the hon mrs', 'the hon ms', 'the hon sir', 'the very rev', 'toh puan', 'tun',
-      'vice admiral', 'viscount', 'viscountess', 'wg cdr', 'ind', 'misc', 'mx'];
+      'vice admiral', 'viscount', 'viscountess', 'wg cdr', 'ind', 'misc', 'mx',
+      'divers', 'diverse', 'diverses', 'diversi', 'diversos', 'diversas'];
   } else {
     prefixList = ['ab', 'bar', 'bin', 'da', 'dal', 'de', 'de la', 'del', 'della', 'der',
       'di', 'du', 'ibn', 'l\'', 'la', 'le', 'san', 'st', 'st.', 'ste', 'ter', 'van',
@@ -263,7 +264,35 @@ exports.parseFullName = function parseFullName(
     nameCommas.push(comma);
   }
 
-
+  // Suffix: remove and store matching parts as suffixes
+  for (l = nameParts.length, i = l - 1; i > 0; i--) {
+    partToCheck = (nameParts[i].slice(-1) === '.' ?
+      nameParts[i].slice(0, -1).toLowerCase() : nameParts[i].toLowerCase());
+    if (
+      suffixList.indexOf(partToCheck) > -1 ||
+      suffixList.indexOf(partToCheck + '.') > -1
+    ) {
+      partsFound = nameParts.splice(i, 1).concat(partsFound);
+      if (nameCommas[i] === ',') { // Keep comma, either before or after
+        nameCommas.splice(i + 1, 1);
+      } else {
+        nameCommas.splice(i, 1);
+      }
+    }
+  }
+  partsFoundCount = partsFound.length;
+  if (partsFoundCount === 1) {
+    parsedName.suffix = partsFound[0];
+    partsFound = [];
+  } else if (partsFoundCount > 1) {
+    handleError(partsFoundCount + ' suffixes found');
+    parsedName.suffix = partsFound.join(', ');
+    partsFound = [];
+  }
+  if (!nameParts.length) {
+    parsedName = fixParsedNameCase(parsedName, fixCase);
+    return partToReturn === 'all' ? parsedName : parsedName[partToReturn];
+  }
 
   // Title: remove and store matching parts as titles
   for (l = nameParts.length, i = l - 1; i >= 0; i--) {
@@ -296,35 +325,7 @@ exports.parseFullName = function parseFullName(
     return partToReturn === 'all' ? parsedName : parsedName[partToReturn];
   }
 
-  // Suffix: remove and store matching parts as suffixes
-  for (l = nameParts.length, i = l - 1; i > 0; i--) {
-    partToCheck = (nameParts[i].slice(-1) === '.' ?
-      nameParts[i].slice(0, -1).toLowerCase() : nameParts[i].toLowerCase());
-    if (
-      suffixList.indexOf(partToCheck) > -1 ||
-      suffixList.indexOf(partToCheck + '.') > -1
-    ) {
-      partsFound = nameParts.splice(i, 1).concat(partsFound);
-      if (nameCommas[i] === ',') { // Keep comma, either before or after
-        nameCommas.splice(i + 1, 1);
-      } else {
-        nameCommas.splice(i, 1);
-      }
-    }
-  }
-  partsFoundCount = partsFound.length;
-  if (partsFoundCount === 1) {
-    parsedName.suffix = partsFound[0];
-    partsFound = [];
-  } else if (partsFoundCount > 1) {
-    handleError(partsFoundCount + ' suffixes found');
-    parsedName.suffix = partsFound.join(', ');
-    partsFound = [];
-  }
-  if (!nameParts.length) {
-    parsedName = fixParsedNameCase(parsedName, fixCase);
-    return partToReturn === 'all' ? parsedName : parsedName[partToReturn];
-  }
+
 
   // Join name prefixes to following names
   if (nameParts.length > 1) {
