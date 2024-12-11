@@ -95,8 +95,23 @@ describe('parse-full-name', function () {
         ['Dr.', 'John', 'P.', 'Doe-Ray', '', 'Jr.', []]);
       verifyName(parseFullName('Dr. Doe-Ray, John P., Jr.'),
         ['Dr.', 'John', 'P.', 'Doe-Ray', '', 'Jr.', []]);
+      verifyName(parseFullName('Doe-Ray, Dr. John P., Jr.'),
+        ['Dr.', 'John', 'P.', 'Doe-Ray', '', 'Jr.', []]);
+    });
+
+    it('parses title & suffix mixes', function () {
       verifyName(parseFullName('Frau Dr. Sophie Wagner'),
         ['Frau', 'Sophie', '', 'Wagner', '', 'Dr.', []]);
+      verifyName(parseFullName('Mr. Prof. John Doe'),
+        ['Mr.', 'John', '', 'Doe', '', 'Prof.', []]);
+      verifyName(parseFullName('Dr. Prof. John Doe'),
+        ['Dr.', 'John', '', 'Doe', '', 'Prof.', []]);
+      verifyName(parseFullName('Doctor Professor John Doe'),
+        ['Doctor', 'John', '', 'Doe', '', 'Professor', []]);
+      verifyName(parseFullName('Dr. Prof. John Albert Doe'),
+        ['Dr.', 'John', 'Albert', 'Doe', '', 'Prof.', []]);
+      verifyName(parseFullName('Dr. Dr. John Albert Doe'),
+        ['Dr.', 'John', 'Albert', 'Doe', '', 'Dr.', []]);
     });
     it('parses name parts in many different orders', function () {
       verifyName(parseFullName(

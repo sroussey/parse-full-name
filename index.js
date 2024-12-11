@@ -272,11 +272,21 @@ exports.parseFullName = function parseFullName(
       suffixList.indexOf(partToCheck) > -1 ||
       suffixList.indexOf(partToCheck + '.') > -1
     ) {
-      partsFound = nameParts.splice(i, 1).concat(partsFound);
-      if (nameCommas[i] === ',') { // Keep comma, either before or after
-        nameCommas.splice(i + 1, 1);
-      } else {
-        nameCommas.splice(i, 1);
+
+      // Check for suffixes that are also can be titles
+      const otherNameParts = nameParts
+        .map(value => (value.slice(-1) === '.' ? value.slice(0, -1).toLowerCase() : value.toLowerCase()))
+        .filter((_, index) => index !== i);
+
+      const titleListToCheck = titleList.map(value => value.toLowerCase());
+
+      if (titleListToCheck.some(value => otherNameParts.includes(value))) {
+        partsFound = nameParts.splice(i, 1).concat(partsFound);
+        if (nameCommas[i] === ',') { // Keep comma, either before or after
+          nameCommas.splice(i + 1, 1);
+        } else {
+          nameCommas.splice(i, 1);
+        }
       }
     }
   }
