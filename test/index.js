@@ -158,6 +158,9 @@ describe('parse-full-name', function () {
         'Mr. JÜAN MARTINEZ (MARTIN) DE LORENZO Y GUTIEREZ JR.', 'all', 1),
         ['Mr.', 'Jüan', 'Martinez', 'de Lorenzo y Gutierez', 'Martin', 'Jr.', []]);
       verifyName(parseFullName(
+        'Dr. b.a. Julia Storm', 'all', 1),
+        ['Dr.', 'Julia', '', 'Storm', '', 'B.A.', []]);
+      verifyName(parseFullName(
         'mr. jüan martinez (martin) de lorenzo y gutierez jr.', 'all', 0),
         ['mr.', 'jüan', 'martinez', 'de lorenzo y gutierez', 'martin', 'jr.', []]);
     });

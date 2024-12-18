@@ -37,9 +37,12 @@ exports.parseFullName = function parseFullName(
 
   // If fixCase = 1, fix case of parsedName parts before returning
   function fixParsedNameCase(fixedCaseName, fixCaseNow) {
-    var forceCaseList = ['e', 'y', 'av', 'af', 'da', 'dal', 'de', 'del', 'der', 'di',
-      'la', 'le', 'van', 'der', 'den', 'vel', 'von', 'II', 'III', 'IV', 'J.D.', 'LL.M.',
-      'M.D.', 'D.O.', 'D.C.', 'Ph.D.', 'Dipl.-Ing.'];
+    var forceCaseList = ["e", "y", "av", "af", "da", "dal", "de", "del", "der", "di", "la", "le", "van", "der",
+      "den", "vel", "von", "II", "III", "IV", "J.D.", "LL.M.", "M.D.", "D.O.", "D.C.", "Ph.D.", "Dipl.-Ing.", "B.A.",
+      "B.Sc.", "B.Eng.", "LL.B.", "B.Ed", "B.F.A.", "B.Mus.", "BBA", "M.A.", "M.Sc.", "M.Eng.", "LL.M.", "M.Ed.",
+      "M.F.A.", "M.Mus.", "MBA", "MPH", "MSW", "Dr.", "Dr.phil.", "Dr.rer.nat.", "Dr.rer.pol.", "Dr.-Ing.", "Dr.med.",
+      "Dr.med.dent.", "Dr.med.vent.", "Dr.jur.", "Dr.theol.", "Dr.agr.", "Dr.soc.sc.", "Prof.", "Dr.h.c.", "Dr.mult.",
+      "Dr.habil.", "Dipl.-Ing.", "Dipl.-Kfm.", "Dipl.-Kffr.",];
     var forceCaseListIndex;
     var namePartLabels = [];
     var namePartWords;
@@ -108,68 +111,88 @@ exports.parseFullName = function parseFullName(
   // Initilize lists of prefixs, suffixs, and titles to detect
   // Note: These list entries must be all lowercase
   suffixList = [
-    'dr', // Doctor
+    '2', // Second
+    'B.ed', // Bachelor of Education
+    'b.a.', // Bachelor of Arts
+    'b.eng.', // Bachelor of Engineering
+    'b.f.a.', // Bachelor of Fine Arts
+    'b.mus.', // Bachelor of Music
+    'b.sc.', // Bachelor of Science
+    'ba', // Bachelor of Arts
+    'bba', // Bachelor of Business Administration
+    'beng', // Bachelor of Engineering
+    'bsc', // Bachelor of Science
+    'cfp', // Certified Financial Planner
+    'chfc', // Chartered Financial Consultant
+    'clu', // Chartered Life Underwriter
+    'd.c.', // Doctor of Chiropractic
+    'd.o.', // Doctor of Osteopathic Medicine
+    'di', // Diplom
+    'dipl.-Kffr.', // Diplom-Ingenieur
+    'dipl.-Kfm.', // Diplom-Ingenieur
+    'dipl.-ing.', // Diplom-Ingenieur
     'doctor', // Doctor
-    'prof', // Professor
-    'professor', // Professor
+    'dr', // Doctor
+    'dr.-Ing.', // Diplom-Ingenieur
+    'dr.agr.', // Doctor Agriculturae
+    'dr.h.c.', // Doctor Honoris Causa
+    'dr.habil.', // Doctor Habilitatus
+    'dr.iur.', // Doctor Iuris
+    'dr.jur.', // Doctor Juris
+    'dr.med.', // Doctor Medicinae
+    'dr.med.dent.', // Doctor Medicinae Dentariae
+    'dr.mont.', // Doctor Montium
+    'dr.mult.', // Doctor Multidisciplinaris
+    'dr.nat.techn.', // Doctor Naturae Technologiae
+    'dr.phil.', // Doctor Philosophiae
+    'dr.rer.nat.', // Doctor Rerum Naturalium
+    'dr.rer.pol.', // Doctor Rerum Politicarum
+    'dr.rer.soc.oec.', // Doctor Rerum Societatis Oeconomicarum
+    'dr.scient.med.', // Doctor Scientiae Medicinae
+    'dr.soc.sc.', // Doctor Scientiarum Socialium
+    'dr.theol.', // Doctor Theologiae
     'esq', // Esquire
     'esquire', // Esquire
-    'jr', // Junior
-    'jnr', // Junior
-    'sr', // Senior
-    'snr', // Senior
-    '2', // Second
     'ii', // Second
     'iii', // Third
     'iv', // Fourth
-    'v', // Fifth
-    'clu', // Chartered Life Underwriter
-    'chfc', // Chartered Financial Consultant
-    'cfp', // Certified Financial Planner
-    'md', // Doctor of Medicine
-    'phd', // Doctor of Philosophy
     'j.d.', // Juris Doctor
+    'jnr', // Junior
+    'jr', // Junior
+    'll.b.', // Bachelor of Laws
     'll.m.', // Master of Laws
-    'm.d.', // Doctor of Medicine
-    'd.o.', // Doctor of Osteopathic Medicine
-    'd.c.', // Doctor of Chiropractic
-    'p.c.', // Professional Corporation
-    'ph.d.', // Doctor of Philosophy
-    'ba', // Bachelor of Arts
-    'b.a.', // Bachelor of Arts
-    'beng', // Bachelor of Engineering
-    'b.eng.', // Bachelor of Engineering
-    'bsc', // Bachelor of Science
-    'b.sc.', // Bachelor of Science
-    'di', // Diplom
-    'dipl.-ing.', // Diplom-Ingenieur
-    'mag.med.vet.', // Magister Medicinae Veterinariae
-    'dr.med.dent.', // Doctor Medicinae Dentariae
-    'mag.rer.nat.', // Magister Rerum Naturalium
-    'mag.phil.', // Magister Philosophiae
-    'mag.iur.', // Magister Iuris
-    'm.a.i.s.', // Master of Advanced International Studies
     'llm', // Master of Laws
-    'll.m.', // Master of Laws
-    'msc', // Master of Science
-    'm.sc.', // Master of Science
-    'phd', // Doctor of Philosophy
-    'dr.nat.techn.', // Doctor Naturae Technologiae
-    'dr.scient.med.', // Doctor Scientiae Medicinae
-    'dr.mont.', // Doctor Montium
-    'dr.rer.nat.', // Doctor Rerum Naturalium
-    'dr.phil.', // Doctor Philosophiae
-    'dr.iur.', // Doctor Iuris
-    'dr.rer.soc.oec.', // Doctor Rerum Societatis Oeconomicarum
-    'dr.theol.', // Doctor Theologiae
-    'm.e.s.', // Master of Environmental Studies
-    'mas', // Master of Applied Science
-    'ma', // Master of Arts
-    'mba', // Master of Business Administration
+    'm.a.', // Master of Arts
+    'm.a.i.s.', // Master of Advanced International Studies
     'm.b.l.', // Master of Business Law
+    'm.d.', // Doctor of Medicine
+    'm.e.s.', // Master of Environmental Studies
+    'm.ed.', // Master of Education
+    'm.eng.', // Master of Engineering
+    'm.f.a.', // Master of Fine Arts
+    'm.mus.', // Master of Music
+    'm.sc.', // Master of Science
+    'ma', // Master of Arts
+    'mag.iur.', // Magister Iuris
+    'mag.med.vet.', // Magister Medicinae Veterinariae
+    'mag.phil.', // Magister Philosophiae
+    'mag.rer.nat.', // Magister Rerum Naturalium
+    'mas', // Master of Applied Science
+    'mba', // Master of Business Administration
+    'md', // Doctor of Medicine
     'mib', // Master of International Business
     'mp', // Master of Public Administration
+    'mph', // Master of Public Health
     'msc', // Master of Science
+    'msw', // Master of Social Work
+    'p.c.', // Professional Corporation
+    'ph.d.', // Doctor of Philosophy
+    'phd', // Doctor of Philosophy
+    'prof', // Professor
+    'professor', // Professor
+    'snr', // Senior
+    'sr', // Senior
+    'v', // Fifth
   ];
 
   if (useLongLists) {
