@@ -759,14 +759,27 @@ export function parseFullName(
   for (l = nameParts.length, i = l - 1; i > 0; i--) {
     partToCheck = nameParts[i].slice(-1) === '.' ? nameParts[i].slice(0, -1).toLowerCase() : nameParts[i].toLowerCase();
     if (suffixList.indexOf(partToCheck) > -1 || suffixList.indexOf(partToCheck + '.') > -1) {
-      // Check for suffixes that are also can be titles
-      const otherNameParts = nameParts
-        .map((value: string) => (value.slice(-1) === '.' ? value.slice(0, -1).toLowerCase() : value.toLowerCase()))
-        .filter((_: string, index: number) => index !== i);
-
+      // Check for suffixes that could also be titles
       const titleListToCheck = titleList.map((value: string) => value.toLowerCase());
+      const isAlsoTitle = titleListToCheck.indexOf(partToCheck) > -1 || titleListToCheck.indexOf(partToCheck + '.') > -1;
+      
+      if (isAlsoTitle) {
+        // If this suffix is also a title, only treat it as a suffix if there are other title parts
+        const otherNameParts = nameParts
+          .map((value: string) => (value.slice(-1) === '.' ? value.slice(0, -1).toLowerCase() : value.toLowerCase()))
+          .filter((_: string, index: number) => index !== i);
 
-      if (titleListToCheck.some((value: string) => otherNameParts.includes(value))) {
+        if (titleListToCheck.some((value: string) => otherNameParts.includes(value))) {
+          partsFound = nameParts.splice(i, 1).concat(partsFound);
+          if (nameCommas[i] === ',') {
+            // Keep comma, either before or after
+            nameCommas.splice(i + 1, 1);
+          } else {
+            nameCommas.splice(i, 1);
+          }
+        }
+      } else {
+        // This is a suffix and not a title, so treat it as a suffix
         partsFound = nameParts.splice(i, 1).concat(partsFound);
         if (nameCommas[i] === ',') {
           // Keep comma, either before or after

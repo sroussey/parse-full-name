@@ -125,6 +125,11 @@ describe('parse-full-name', function () {
         ['Dr.', 'John', 'P.', 'Doe-Ray', '', 'Jr.'],[]);
     });
 
+    it('parse simple suffixes', function () {
+      verifyName(parseFullName("John Smith Jr."),
+        ['', 'John', '', 'Smith', '', 'Jr.'],[]);
+    });
+
     it('parses title & suffix mixes', function () {
       verifyName(parseFullName('Frau Dr. Sophie Wagner'),
         ['Frau', 'Sophie', '', 'Wagner', '', 'Dr.'],[]);
