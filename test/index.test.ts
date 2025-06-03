@@ -1,17 +1,33 @@
-var assert = require('assert');
-var parseFullName = require('../').parseFullName;
+import { parseFullName } from '../src/index.js';
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+
 var error;
 
-var verifyName = function (nameToCheck, partsToCheck) {
+interface NameParts {
+  title: string;
+  first: string;
+  middle: string;
+  last: string;
+  nick: string;
+  suffix: string;
+  error: string[];
+}
+
+interface PartsToCheck {
+  [index: number]: string | string[];
+}
+
+var verifyName = function (nameToCheck: NameParts, partsToCheck: PartsToCheck) {
   assert.strictEqual(nameToCheck.title, partsToCheck[0]);
   assert.strictEqual(nameToCheck.first, partsToCheck[1]);
   assert.strictEqual(nameToCheck.middle, partsToCheck[2]);
   assert.strictEqual(nameToCheck.last, partsToCheck[3]);
   assert.strictEqual(nameToCheck.nick, partsToCheck[4]);
   assert.strictEqual(nameToCheck.suffix, partsToCheck[5]);
-  assert.strictEqual(nameToCheck.error.length, partsToCheck[6].length);
-  for (var i = 1, l = partsToCheck[6].length; i < l; i++) {
-    assert.strictEqual(nameToCheck.error[i], partsToCheck[6][i]);
+  assert.strictEqual(nameToCheck.error.length, (partsToCheck[6] as string[]).length);
+  for (var i = 1, l = (partsToCheck[6] as string[]).length; i < l; i++) {
+    assert.strictEqual(nameToCheck.error[i], (partsToCheck[6] as string[])[i]);
   }
 };
 
@@ -72,6 +88,8 @@ describe('parse-full-name', function () {
         ['', 'Orenthal', 'James', 'Simpson', 'O. J.', '', []]);
       verifyName(parseFullName('Strippoli, Charles J (HM Home and Community Svcs LLC)'),
         ['', 'Charles', 'J', 'Strippoli', 'HM Home and Community Svcs LLC', '', []]);
+      verifyName(parseFullName('James "O. J." Simpson'),
+        ['', 'James', '', 'Simpson', 'O. J.', '', []]);
 
     });
     it('parses known suffixes', function () {
@@ -197,7 +215,9 @@ describe('parse-full-name', function () {
           'oaweifugy', '', '', ['Error: 22 middle names']]);
     });
     it('returns warnings for null/undefined names', function () {
+      // @ts-ignore
       verifyName(parseFullName(null), ['', '', '', '', '', '', ['Error: No input']]);
+      // @ts-ignore
       verifyName(parseFullName(), ['', '', '', '', '', '', ['Error: No input']]);
     });
     it('will throw errors, when specified', function () {

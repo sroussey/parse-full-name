@@ -1,4 +1,4 @@
-# parse-full-name-plus
+# @sroussey/parse-full-name
 
 [![npm version](https://badge.fury.io/js/parse-full-name-plus.svg)](https://badge.fury.io/js/parse-full-name-plus)
 

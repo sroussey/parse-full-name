@@ -1,0 +1,26 @@
+{
+  "include": ["src/**/*"],
+  "files": ["src/index.ts"],
+  "exclude": ["test", "node_modules", "**/*.test.ts", "dist"],
+  "compilerOptions": {
+    "lib": ["dom", "ESNext"],
+    "module": "esnext",
+    "target": "esnext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force", 
+    "composite": true,
+    "strict": true,
+    "downlevelIteration": true,
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./src",
+    "rootDir": "./src",
+    "types": ["@types/bun"]
+  }
+}

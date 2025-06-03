@@ -1,10 +1,10 @@
 {
-  "name": "parse-full-name-plus",
+  "name": "@sroussey/parse-full-name",
   "version": "1.0.7",
   "description": "A function that accepts the full name of a person in any format, parses it, and returns its parts { title, first name, middle name, last name, nickname, suffix, [and any parsing errors] }.",
-  "main": "index.js",
-  "scripts": {
-    "test": "mocha test/"
+    "scripts": {
+    "test": "bun test",
+    "build": "bun build src/index.ts --outdir dist --target bun && tsc --declaration --emitDeclarationOnly --outDir dist"
   },
   "repository": {
     "type": "git",
@@ -22,7 +22,8 @@
   ],
   "author": "Own Up <dev@ownup.com> (https://www,ownup.com)",
   "contributors": [
-    "David Schnell-Davis <dschnelldavis@gmail.com> (http://github.com/dschnelldavis)"
+    "David Schnell-Davis <dschnelldavis@gmail.com> (http://github.com/dschnelldavis)",
+    "Steve Roussey <sroussey@gmail.com> (http://github.com/sroussey)"
   ],
   "license": "MIT",
   "bugs": {
@@ -31,7 +32,21 @@
   "homepage": "https://github.com/anTon1337x3/parse-full-name-plus",
   "dependencies": {},
   "devDependencies": {
-    "@types/node": "^18",
-    "mocha": "^2.5.0"
-  }
+    "typescript": "^5.8.3",
+    "@types/bun": "^1.2.15"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "type": "module",
+  "engines": {
+    "bun": ">=1.2.15"
+  },
+  "packageManager": "bun@1.2.15"
 }

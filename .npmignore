@@ -1,4 +1,4 @@
 test
 .nvmrc
 .travis.yml
-yarn.lock
+bun.lock
