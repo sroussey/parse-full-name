@@ -180,6 +180,11 @@ describe("parse-full-name", function () {
 
     it("parse simple", function () {
       verifyName(parseFullName("John Smith Jr."), ["", "John", "", "Smith", "", "Jr."], []);
+      verifyName(
+        parseFullName("mary-jane o'connor"),
+        ["", "Mary-Jane", "", "O'Connor", "", ""],
+        []
+      );
     });
 
     it("parses title & suffix mixes", function () {

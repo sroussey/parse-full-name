@@ -224,10 +224,10 @@ export function parseFullName(
                 namePartWords[j] = namePartWords[j].toUpperCase();
               }
             } else {
-              // Convert to Title Case
-              namePartWords[j] =
-                namePartWords[j].slice(0, 1).toUpperCase() +
-                namePartWords[j].slice(1).toLowerCase();
+              // Convert to Title Case (with proper handling of hyphens and apostrophes)
+              namePartWords[j] = namePartWords[j]
+                .toLowerCase()
+                .replace(/(^|[-'])[a-z]/g, (match) => match.toUpperCase());
             }
           }
           fixedCaseName[currentLabel] = namePartWords.join(" ");
