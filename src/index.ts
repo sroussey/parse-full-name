@@ -25,7 +25,7 @@ export function parseFullName(
 
 export function parseFullName(
   nameToParse: string,
-  partToReturn: 'title' | 'first' | 'middle' | 'last' | 'nick' | 'suffix',
+  partToReturn: PartToReturn,
   fixCase?: FixCaseOption,
   stopOnError?: StopOnErrorOption,
   useLongLists?: UseLongListsOption
@@ -49,9 +49,8 @@ export function parseFullName(
   'use strict';
 
   let i: number,
-    j: number,
-    k: number,
-    l: number,
+    j: number, 
+    l: number, 
     m: number,
     n: string[],
     part: string,
@@ -179,8 +178,7 @@ export function parseFullName(
       'Dipl.-Kffr.',
     ];
     let forceCaseListIndex: number;
-    const namePartLabels: string[] = [];
-    let namePartWords: string[];
+    let namePartWords: string[]; // Removed unused outer namePartLabels
 
     if (fixCaseNow) {
       const namePartLabels = Object.keys(parsedName).filter((v: string) => v !== 'error') as (keyof Omit<

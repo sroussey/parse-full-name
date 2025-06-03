@@ -1,6 +1,5 @@
 # @sroussey/parse-full-name
 
-[![npm version](https://badge.fury.io/js/parse-full-name-plus.svg)](https://badge.fury.io/js/parse-full-name-plus)
 
 ## Description
 
@@ -41,10 +40,10 @@ for links to several other excellent parsers which may suit your needs better.
 
 ### Basic Use
 
-```javascript
-var parseFullName = require("parse-full-name").parseFullName;
+```ts
+import { parseFullName } from "@sroussey/parse-full-name";
 
-name = parseFullName("Mr. David Davis");
+const name = parseFullName("Mr. David Davis");
 
 assert.strictEqual(name.title, "Mr.");
 assert.strictEqual(name.first, "David");

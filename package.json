@@ -1,14 +1,17 @@
 {
   "name": "@sroussey/parse-full-name",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "A function that accepts the full name of a person in any format, parses it, and returns its parts { title, first name, middle name, last name, nickname, suffix, [and any parsing errors] }.",
     "scripts": {
     "test": "bun test",
-    "build": "bun build src/index.ts --outdir dist --target bun && tsc --declaration --emitDeclarationOnly --outDir dist"
+    "build": "bun run build-clean && bun run build-js && bun run build-types",
+    "build-clean": "rm -rf dist",
+    "build-js": "bun build src/index.ts --outdir dist",
+    "build-types": "tsc src/index.ts --outDir dist --declaration --emitDeclarationOnly --declarationMap"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/anTon1337x3/parse-full-name-plus"
+    "url": "https://github.com/sroussey/parse-full-name"
   },
   "keywords": [
     "parse",
@@ -27,9 +30,9 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/anTon1337x3/parse-full-name-plus/issues"
+    "url": "https://github.com/sroussey/parse-full-name/issues"
   },
-  "homepage": "https://github.com/anTon1337x3/parse-full-name-plus",
+  "homepage": "https://github.com/sroussey/parse-full-name",
   "dependencies": {},
   "devDependencies": {
     "typescript": "^5.8.3",

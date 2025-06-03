@@ -1,6 +1,5 @@
 {
   "include": ["src/**/*"],
-  "files": ["src/index.ts"],
   "exclude": ["test", "node_modules", "**/*.test.ts", "dist"],
   "compilerOptions": {
     "lib": ["dom", "ESNext"],
@@ -9,7 +8,6 @@
     "moduleResolution": "bundler",
     "moduleDetection": "force", 
     "composite": true,
-    "strict": true,
     "downlevelIteration": true,
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
