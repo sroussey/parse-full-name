@@ -13,39 +13,53 @@ type PartToReturn = "title" | "first" | "middle" | "last" | "nick" | "suffix" | 
 type FixCaseOption = boolean | number; // -1, 0, 1
 type StopOnErrorOption = boolean | number; // 0, 1
 type UseLongListsOption = boolean | number; // 0, 1
+type NormalizeOption = boolean | number; // 0, 1
+
+interface ParseFullNameOptions {
+  partToReturn?: PartToReturn;
+  fixCase?: FixCaseOption;
+  stopOnError?: StopOnErrorOption;
+  useLongLists?: UseLongListsOption;
+  normalize?: NormalizeOption;
+}
 
 // Function overloads for better type safety
 export function parseFullName(
   nameToParse: string,
-  partToReturn: "error",
-  fixCase?: FixCaseOption,
-  stopOnError?: StopOnErrorOption,
-  useLongLists?: UseLongListsOption
+  options: { partToReturn: "error" } & Omit<ParseFullNameOptions, "partToReturn">
 ): string[];
 
 export function parseFullName(
   nameToParse: string,
-  partToReturn: PartToReturn,
-  fixCase?: FixCaseOption,
-  stopOnError?: StopOnErrorOption,
-  useLongLists?: UseLongListsOption
+  options: { partToReturn: Exclude<PartToReturn, "all" | "error"> } & Omit<
+    ParseFullNameOptions,
+    "partToReturn"
+  >
 ): string;
 
 export function parseFullName(
   nameToParse: string,
-  partToReturn?: "all",
-  fixCase?: FixCaseOption,
-  stopOnError?: StopOnErrorOption,
-  useLongLists?: UseLongListsOption
+  options?: { partToReturn?: "all" } & Omit<ParseFullNameOptions, "partToReturn">
 ): ParsedName;
 
 export function parseFullName(
   nameToParse: string,
-  partToReturn?: PartToReturn,
-  fixCase?: FixCaseOption,
-  stopOnError?: StopOnErrorOption,
-  useLongLists?: UseLongListsOption
+  options?: ParseFullNameOptions
+): ParsedName | string | string[];
+
+export function parseFullName(
+  nameToParse: string,
+  options: ParseFullNameOptions = {}
 ): ParsedName | string | string[] {
+  // Destructure options with defaults
+  const {
+    partToReturn: partToReturnOption,
+    fixCase: fixCaseOption,
+    stopOnError: stopOnErrorOption,
+    useLongLists: useLongListsOption,
+    normalize: normalizeOption,
+  } = options;
+
   let i: number,
     j: number,
     l: number,
@@ -89,22 +103,30 @@ export function parseFullName(
     "suffix",
     "error",
   ];
-  partToReturn =
-    partToReturn && validParts.indexOf(partToReturn.toLowerCase() as PartToReturn) > -1
-      ? (partToReturn.toLowerCase() as PartToReturn)
+  let partToReturn =
+    partToReturnOption && validParts.indexOf(partToReturnOption.toLowerCase() as PartToReturn) > -1
+      ? (partToReturnOption.toLowerCase() as PartToReturn)
       : "all";
   // 'all' = return object with all parts, others return single part
 
+  let fixCase = fixCaseOption;
   if (fixCase === false) fixCase = 0;
   if (fixCase === true) fixCase = 1;
   fixCase = fixCase !== undefined && (fixCase === 0 || fixCase === 1) ? fixCase : -1; // -1 = fix case only if input is all upper or lowercase
 
+  let stopOnError = stopOnErrorOption;
   if (stopOnError === true) stopOnError = 1;
   stopOnError = stopOnError && stopOnError === 1 ? 1 : 0;
   // false = output warnings on parse error, but don't stop
 
+  let useLongLists = useLongListsOption;
   if (useLongLists === false) useLongLists = 0;
   else useLongLists = 1; // change -- defaults to on now
+
+  let normalize = normalizeOption;
+  if (normalize === true) normalize = 1;
+  normalize = normalize && normalize === 1 ? 1 : 0;
+  // false = no normalization, true = normalize for deduplication
 
   // If stopOnError = 1, throw error, otherwise return error messages in array
   function handleError(errorMessage: string): void {
@@ -237,14 +259,98 @@ export function parseFullName(
     return fixedCaseName;
   }
 
+  // Normalize parsed name parts for deduplication
+  function normalizeParsedName(nameToNormalize: ParsedName): ParsedName {
+    if (!normalize) return nameToNormalize;
+
+    // Normalization mappings
+    const suffixNormalizations: { [key: string]: string } = {
+      jr: "Jr.",
+      "jr.": "Jr.",
+      junior: "Jr.",
+      jnr: "Jr.",
+      "jnr.": "Jr.",
+      sr: "Sr.",
+      "sr.": "Sr.",
+      senior: "Sr.",
+      snr: "Sr.",
+      "snr.": "Sr.",
+      "2": "Jr.",
+      "2nd": "Jr.",
+      second: "Jr.",
+      "3": "III",
+      "3rd": "III",
+      third: "III",
+      "4": "IV",
+      "4th": "IV",
+      fourth: "IV",
+      "5": "V",
+      "5th": "V",
+      fifth: "V",
+      ii: "Jr.",
+      iii: "III",
+      iv: "IV",
+      v: "V",
+      dr: "Dr.",
+      "dr.": "Dr.",
+      doctor: "Dr.",
+      prof: "Prof.",
+      "prof.": "Prof.",
+      professor: "Prof.",
+      esq: "Esq.",
+      "esq.": "Esq.",
+      esquire: "Esq.",
+    };
+
+    const titleNormalizations: { [key: string]: string } = {
+      dr: "Dr.",
+      "dr.": "Dr.",
+      doctor: "Dr.",
+      prof: "Prof.",
+      "prof.": "Prof.",
+      professor: "Prof.",
+      mr: "Mr.",
+      "mr.": "Mr.",
+      mrs: "Mrs.",
+      "mrs.": "Mrs.",
+      ms: "Ms.",
+      "ms.": "Ms.",
+      miss: "Miss",
+      sir: "Sir",
+    };
+
+    // Normalize suffix
+    if (nameToNormalize.suffix) {
+      const suffixParts = nameToNormalize.suffix.split(", ");
+      const normalizedSuffixParts = suffixParts.map((part) => {
+        const lowerPart = part.toLowerCase();
+        return suffixNormalizations[lowerPart] || part;
+      });
+      nameToNormalize.suffix = normalizedSuffixParts.join(", ");
+    }
+
+    // Normalize title
+    if (nameToNormalize.title) {
+      const titleParts = nameToNormalize.title.split(", ");
+      const normalizedTitleParts = titleParts.map((part) => {
+        const lowerPart = part.toLowerCase();
+        return titleNormalizations[lowerPart] || part;
+      });
+      nameToNormalize.title = normalizedTitleParts.join(", ");
+    }
+
+    return nameToNormalize;
+  }
+
   // If no input name, or input name is not a string, abort
   if (!nameToParse || typeof nameToParse !== "string") {
     handleError("No input");
     const fixedName = fixParsedNameCase(parsedName, fixCase as number);
+    const normalizedName = normalizeParsedName(fixedName);
     if (partToReturn === "all" || !partToReturn) {
-      return fixedName;
+      return normalizedName;
     } else {
-      return fixedName[partToReturn] as any;
+      return normalizedName[partToReturn] as any;
     }
   } else {
     nameToParse = nameToParse.replaceAll(/[       ]+/g, " ");
@@ -263,6 +369,10 @@ export function parseFullName(
   // Note: These list entries must be all lowercase
   suffixList = [
     "2", // Second
+    "2nd", // Second
+    "3rd", // Third
+    "4th", // Fourth
+    "5th", // Fifth
     "b.ed", // Bachelor of Education
     "b.a.", // Bachelor of Arts
     "b.eng.", // Bachelor of Engineering
@@ -310,6 +420,7 @@ export function parseFullName(
     "j.d.", // Juris Doctor
     "jnr", // Junior
     "jr", // Junior
+    "junior", // Junior
     "ll.b.", // Bachelor of Laws
     "ll.m.", // Master of Laws
     "llm", // Master of Laws
@@ -341,6 +452,7 @@ export function parseFullName(
     "phd", // Doctor of Philosophy
     "prof", // Professor
     "professor", // Professor
+    "senior", // Senior
     "snr", // Senior
     "sr", // Senior
     "v", // Fifth
@@ -748,10 +860,11 @@ export function parseFullName(
   }
   if (!nameToParse.trim().length) {
     const fixedName = fixParsedNameCase(parsedName, fixCase as number);
+    const normalizedName = normalizeParsedName(fixedName);
     if (partToReturn === "all" || !partToReturn) {
-      return fixedName;
+      return normalizedName;
     } else {
-      return fixedName[partToReturn] as any;
+      return normalizedName[partToReturn] as any;
     }
   }
 
@@ -781,20 +894,49 @@ export function parseFullName(
         titleListToCheck.indexOf(partToCheck + ".") > -1;
 
       if (isAlsoTitle) {
-        // If this suffix is also a title, only treat it as a suffix if there are other title parts
-        const otherNameParts = nameParts
-          .map((value: string) =>
-            value.slice(-1) === "." ? value.slice(0, -1).toLowerCase() : value.toLowerCase()
-          )
-          .filter((_: string, index: number) => index !== i);
+        // For suffix-priority terms (generational suffixes), always treat as suffix when at end
+        const suffixPriorityTerms = [
+          "sr",
+          "senior",
+          "jr",
+          "junior",
+          "snr",
+          "ii",
+          "iii",
+          "iv",
+          "v",
+          "2nd",
+          "3rd",
+          "4th",
+          "5th",
+        ];
+        const isSuffixPriority = suffixPriorityTerms.includes(partToCheck);
 
-        if (titleListToCheck.some((value: string) => otherNameParts.includes(value))) {
+        if (isSuffixPriority) {
+          // Always treat suffix-priority terms as suffixes
           partsFound = nameParts.splice(i, 1).concat(partsFound);
           if (nameCommas[i] === ",") {
             // Keep comma, either before or after
             nameCommas.splice(i + 1, 1);
           } else {
             nameCommas.splice(i, 1);
+          }
+        } else {
+          // If this suffix is also a title, only treat it as a suffix if there are other title parts
+          const otherNameParts = nameParts
+            .map((value: string) =>
+              value.slice(-1) === "." ? value.slice(0, -1).toLowerCase() : value.toLowerCase()
+            )
+            .filter((_: string, index: number) => index !== i);
+
+          if (titleListToCheck.some((value: string) => otherNameParts.includes(value))) {
+            partsFound = nameParts.splice(i, 1).concat(partsFound);
+            if (nameCommas[i] === ",") {
+              // Keep comma, either before or after
+              nameCommas.splice(i + 1, 1);
+            } else {
+              nameCommas.splice(i, 1);
+            }
           }
         }
       } else {
@@ -820,10 +962,11 @@ export function parseFullName(
   }
   if (!nameParts.length) {
     const fixedName = fixParsedNameCase(parsedName, fixCase as number);
+    const normalizedName = normalizeParsedName(fixedName);
     if (partToReturn === "all" || !partToReturn) {
-      return fixedName;
+      return normalizedName;
     } else {
-      return fixedName[partToReturn] as any;
+      return normalizedName[partToReturn] as any;
     }
   }
 
@@ -855,10 +998,11 @@ export function parseFullName(
   }
   if (!nameParts.length) {
     const fixedName = fixParsedNameCase(parsedName, fixCase as number);
+    const normalizedName = normalizeParsedName(fixedName);
     if (partToReturn === "all" || !partToReturn) {
-      return fixedName;
+      return normalizedName;
     } else {
-      return fixedName[partToReturn] as any;
+      return normalizedName[partToReturn] as any;
     }
   }
 
@@ -928,10 +1072,11 @@ export function parseFullName(
   }
   if (!nameParts.length) {
     const fixedName = fixParsedNameCase(parsedName, fixCase as number);
+    const normalizedName = normalizeParsedName(fixedName);
     if (partToReturn === "all" || !partToReturn) {
-      return fixedName;
+      return normalizedName;
     } else {
-      return fixedName[partToReturn] as any;
+      return normalizedName[partToReturn] as any;
     }
   }
 
@@ -948,10 +1093,11 @@ export function parseFullName(
   }
   if (!nameParts.length) {
     const fixedName = fixParsedNameCase(parsedName, fixCase as number);
+    const normalizedName = normalizeParsedName(fixedName);
     if (partToReturn === "all" || !partToReturn) {
-      return fixedName;
+      return normalizedName;
     } else {
-      return fixedName[partToReturn] as any;
+      return normalizedName[partToReturn] as any;
     }
   }
 
@@ -962,13 +1108,14 @@ export function parseFullName(
   parsedName.middle = nameParts.join(" ");
 
   const fixedName = fixParsedNameCase(parsedName, fixCase as number);
-  for (const key in fixedName) {
-    const val = fixedName[key as keyof ParsedName];
+  const normalizedName = normalizeParsedName(fixedName);
+  for (const key in normalizedName) {
+    const val = normalizedName[key as keyof ParsedName];
     if (typeof val === "string") {
-      fixedName[key as keyof ParsedName] = val.trim() as any;
+      normalizedName[key as keyof ParsedName] = val.trim() as any;
     } else if (Array.isArray(val)) {
-      fixedName[key as keyof ParsedName] = val.map((v: string) => v.trim()) as any;
+      normalizedName[key as keyof ParsedName] = val.map((v: string) => v.trim()) as any;
     }
   }
-  return partToReturn === "all" ? fixedName : fixedName[partToReturn as keyof ParsedName];
+  return partToReturn === "all" ? normalizedName : normalizedName[partToReturn as keyof ParsedName];
 }

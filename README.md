@@ -1,6 +1,5 @@
 # @sroussey/parse-full-name
 
-
 ## Description
 
 parseFullName() is designed to parse large batches of full names in multiple
@@ -52,7 +51,9 @@ assert.strictEqual(name.last, "Davis");
 
 ### Options
 
-parseFullName(nameToParse, partToReturn, fixCase, stopOnError, useLongLists)
+```ts
+parseFullName(nameToParse: string , {partToReturn, fixCase, stopOnError, useLongLists, normalize}: {partToReturn: string, fixCase: number, stopOnError: number, useLongLists: number, normalize: number})
+```
 
 nameToParse (string, required): the name to be parsed
 
@@ -87,18 +88,45 @@ useLongLists (integer, optional): use long prefix, suffix, and title lists
   detect "Ben" as a prefix, which is common in middle-eastern names,
   rather than as a first name, which is common in English names
 
+normalize (integer, optional): normalize name parts for deduplication
+
+- 0 or false (default) = no normalization
+- 1 or true = normalize name parts to canonical forms
+
+### Normalize Option
+
+The `normalize` option standardizes name parts to canonical forms, useful for deduplication:
+
+**Suffixes normalized:**
+
+- `jr`, `junior`, `jnr` → `Jr.`
+- `sr`, `senior`, `snr` → `Sr.`
+- `2`, `2nd`, `second` → `II`
+- `3`, `3rd`, `third` → `III`
+- `esq`, `esquire` → `Esq.`
+
+**Titles normalized:**
+
+- `dr`, `doctor` → `Dr.`
+- `prof`, `professor` → `Prof.`
+- `mr` → `Mr.`
+- `mrs` → `Mrs.`
+- `ms` → `Ms.`
+
+This ensures consistent formatting for database deduplication and matching.
+
 ### Advanced Use
 
 ```javascript
 var parseFullName = require("parse-full-name").parseFullName;
 
-name = parseFullName(
-  "DE LORENZO Y GUTIEREZ, Mr. JÜAN MARTINEZ (MARTIN) Jr.",
-  "all",
-  1,
-  0,
-  0
-);
+name = parseFullName("DE LORENZO Y GUTIEREZ, Mr. JÜAN MARTINEZ (MARTIN) Jr.", {
+  partToReturn: "all",
+  fixCase: 1,
+  stopOnError: 0,
+  useLongLists: 0,
+  normalize: 0,
+});
 
 assert.strictEqual(name.title, "Mr.");
 assert.strictEqual(name.first, "Jüan");
@@ -112,9 +140,12 @@ assert.strictEqual(name.error, []);
 ## Reporting Bugs
 
 If you find a name this function does not parse correctly, or any other bug,
-please report it here: https://github.com/dschnelldavis/parse-full-name/issues
+please report it here: https://github.com/sroussey/parse-full-name/issues
 
 ## Credits and precursors
+
+This is a fork of https://github.com/anTon1337x3/parse-full-name-plus which
+is a fork of https://github.com/dschnelldavis/parse-full-name
 
 Before creating this function I studied many other name-parsing functions.
 None quite suited my needs, but many are excellent at what they do, and
