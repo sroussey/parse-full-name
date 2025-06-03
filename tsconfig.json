@@ -2,9 +2,9 @@
   "include": ["src/**/*"],
   "exclude": ["test", "node_modules", "**/*.test.ts", "dist"],
   "compilerOptions": {
-    "lib": ["dom", "ESNext"],
+    "lib": ["dom", "es2021"],
     "module": "esnext",
-    "target": "esnext",
+    "target": "es2021",
     "moduleResolution": "bundler",
     "moduleDetection": "force", 
     "composite": true,

@@ -116,6 +116,15 @@ describe('parse-full-name', function () {
         ['Dr.', 'John', 'P.', 'Doe-Ray', '', 'Jr.'],[]);
     });
 
+    it('parses titles with leading and trailing whitespace', function () {
+      verifyName(parseFullName(' Dr. John  P. Doe-Ray,  Jr.'),
+        ['Dr.', 'John', 'P.', 'Doe-Ray', '', 'Jr.'],[]);
+      verifyName(parseFullName('Dr.  Doe-Ray,  John  P.,   Jr. '),
+        ['Dr.', 'John', 'P.', 'Doe-Ray', '', 'Jr.'],[]);
+      verifyName(parseFullName(' Doe-Ray,  Dr.  John P. , Jr.  '),
+        ['Dr.', 'John', 'P.', 'Doe-Ray', '', 'Jr.'],[]);
+    });
+
     it('parses title & suffix mixes', function () {
       verifyName(parseFullName('Frau Dr. Sophie Wagner'),
         ['Frau', 'Sophie', '', 'Wagner', '', 'Dr.'],[]);

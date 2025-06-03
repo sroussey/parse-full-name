@@ -46,7 +46,6 @@ export function parseFullName(
   stopOnError?: StopOnErrorOption,
   useLongLists?: UseLongListsOption
 ): ParsedName | string | string[] {
-  'use strict';
 
   let i: number,
     j: number, 
@@ -97,8 +96,8 @@ export function parseFullName(
   stopOnError = stopOnError && stopOnError === 1 ? 1 : 0;
   // false = output warnings on parse error, but don't stop
 
-  if (useLongLists === true) useLongLists = 1;
-  useLongLists = useLongLists && useLongLists === 1 ? 1 : 0; // 0 = short lists
+  if (useLongLists === false) useLongLists = 0;
+  else useLongLists = 1; // change -- defaults to on now
 
   // If stopOnError = 1, throw error, otherwise return error messages in array
   function handleError(errorMessage: string): void {
@@ -239,6 +238,7 @@ export function parseFullName(
       return fixedName[partToReturn] as any;
     }
   } else {
+    nameToParse = nameToParse.replaceAll(/[       ]+/g, ' ');
     nameToParse = nameToParse.trim();
   }
 
@@ -927,5 +927,13 @@ export function parseFullName(
   parsedName.middle = nameParts.join(' ');
 
   const fixedName = fixParsedNameCase(parsedName, fixCase as number);
+  for (const key in fixedName) {
+    const val = fixedName[key as keyof ParsedName];
+    if (typeof val === 'string') {
+      fixedName[key as keyof ParsedName] = val.trim() as any;
+    } else if (Array.isArray(val)) {
+      fixedName[key as keyof ParsedName] = val.map((v: string) => v.trim()) as any;
+    }
+  }
   return partToReturn === 'all' ? fixedName : fixedName[partToReturn as keyof ParsedName];
 }
