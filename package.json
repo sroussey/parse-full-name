@@ -1,13 +1,13 @@
 {
   "name": "@sroussey/parse-full-name",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "A function that accepts the full name of a person in any format, parses it, and returns its parts { title, first name, middle name, last name, nickname, suffix, [and any parsing errors] }.",
     "scripts": {
     "test": "bun test",
     "build": "bun run build-clean && bun run build-js && bun run build-types",
-    "build-clean": "rm -rf dist",
+    "build-clean": "rm -rf dist tsconfig.tsbuildinfo",
     "build-js": "bun build src/index.ts --outdir dist",
-    "build-types": "tsc --project tsconfig.json"
+    "build-types": "tsc --project tsconfig.json --emitDeclarationOnly"
   },
   "repository": {
     "type": "git",

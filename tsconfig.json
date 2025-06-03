@@ -1,6 +1,6 @@
 {
   "include": ["src/**/*"],
-  "exclude": ["test", "node_modules", "**/*.test.ts", "dist"],
+  "exclude": ["test", "**/*.test.ts", "dist"],
   "compilerOptions": {
     "lib": ["dom", "es2021"],
     "module": "esnext",
