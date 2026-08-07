@@ -17,8 +17,16 @@ parseFullName():
    - middle (string): middle name(s) or initial(s)
    - last (string): last name or initial
    - nick (string): nickname(s)
-   - suffix (string): suffix(es) (e.g. "Jr.", "II", or "Esq.")
+   - generation (string): generational suffix(es) (e.g. "Jr." or "III")
+   - credential (string): professional credential(s) (e.g. "Esq.", "CPA", or
+     "M.D., CFA"), comma-joined when a name carries several
    - error (array of strings): any parsing error messages
+
+   Trailing name parts are split across two fields because they answer
+   different questions. `generation` says *which* person — a junior and a
+   senior sharing a name are two people — so code that identifies or
+   de-duplicates people must key on it. `credential` says only how one document
+   chose to annotate a person, and must be ignored for that purpose.
 
 Optionally, parseFullName() can also:
 
@@ -65,7 +73,8 @@ partToReturn (string, optional): the name of a single part to return
 - 'middle' = return only the middle name(s) as a string (or an empty string)
 - 'last' = return only the last name as a string (or an empty string)
 - 'nick' = return only the nickname(s) as a string (or an empty string)
-- 'suffix' = return only the suffix(es) as a string (or an empty string)
+- 'generation' = return only the generational suffix(es) as a string (or an empty string)
+- 'credential' = return only the credential(s) as a string (or an empty string)
 - 'error' = return only the array of parsing error messages (or an empty array)
 
 fixCase (integer, optional): fix case of output name
@@ -133,9 +142,37 @@ assert.strictEqual(name.first, "Jüan");
 assert.strictEqual(name.middle, "Martinez");
 assert.strictEqual(name.last, "de Lorenzo y Gutierez");
 assert.strictEqual(name.nick, "Martin");
-assert.strictEqual(name.suffix, "Jr.");
+assert.strictEqual(name.generation, "Jr.");
+assert.strictEqual(name.credential, "");
 assert.strictEqual(name.error, []);
 ```
+
+## Upgrading from 2.x
+
+**Breaking:** `suffix` is gone. It is replaced by `generation` and
+`credential`, and `partToReturn: "suffix"` is likewise replaced by
+`"generation"` / `"credential"`.
+
+```js
+// 2.x
+name.suffix; // "Jr., CPA"
+
+// 3.x
+name.generation; // "Jr."
+name.credential; // "CPA"
+```
+
+To restore the old combined string:
+`[name.generation, name.credential].filter(Boolean).join(", ")`.
+
+The split moved into this library because only it owns the suffix vocabulary;
+callers doing the classification themselves drifted out of sync with the list.
+
+Also in 3.0: `CPA` and `CFA` are recognized (previously taken as the surname),
+generational suffixes past `V` (`VI`, `VII`, `VIII`) are recognized (likewise),
+and a suffix that is also a common surname — `Ma`, `Ba`, `Di`, `Mas`, `Vi` — no
+longer consumes the last remaining name part, so "Jack Ma" parses as a first
+and last name rather than a last name with no first.
 
 ## Reporting Bugs
 

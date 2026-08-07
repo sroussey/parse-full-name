@@ -7,7 +7,8 @@ interface NameParts {
   middle: string;
   last: string;
   nick: string;
-  suffix: string;
+  generation: string;
+  credential: string;
   error: string[];
 }
 
@@ -25,7 +26,10 @@ var verifyName = function (
   expect(nameToCheck.middle).toBe(partsToCheck[2]);
   expect(nameToCheck.last).toBe(partsToCheck[3]);
   expect(nameToCheck.nick).toBe(partsToCheck[4]);
-  expect(nameToCheck.suffix).toBe(partsToCheck[5]);
+  // Index 5 is the GENERATIONAL suffix and 6 the credential; a case that expects
+  // neither may simply omit them.
+  expect(nameToCheck.generation).toBe(partsToCheck[5] ?? "");
+  expect(nameToCheck.credential).toBe(partsToCheck[6] ?? "");
   expect(nameToCheck.error.length).toBe(errors.length);
   for (let i = 0; i < errors.length; i++) {
     expect(nameToCheck.error[i]).toBe(errors[i]);
@@ -121,24 +125,24 @@ describe("parse-full-name", function () {
       verifyName(parseFullName("Davis, Sammy, Jr."), ["", "Sammy", "", "Davis", "", "Jr."], []);
       verifyName(
         parseFullName("Dr. Dr.med.dent. Hans Zimmer"),
-        ["Dr.", "Hans", "", "Zimmer", "", "Dr.med.dent."],
+        ["Dr.", "Hans", "", "Zimmer", "", "", "Dr.med.dent."],
         []
       );
       verifyName(
         parseFullName("dipl.-ing. Hans Zimmer", { fixCase: 1 }),
-        ["", "Hans", "", "Zimmer", "", "Dipl.-Ing."],
+        ["", "Hans", "", "Zimmer", "", "", "Dipl.-Ing."],
         []
       );
     });
     it("parses unknown suffixes", function () {
       verifyName(
         parseFullName("John P. Doe-Ray, Jr., LUTC"),
-        ["", "John", "P.", "Doe-Ray", "", "Jr., LUTC"],
+        ["", "John", "P.", "Doe-Ray", "", "Jr.", "LUTC"],
         []
       );
       verifyName(
         parseFullName("Doe-Ray, John P., Jr., LUTC"),
-        ["", "John", "P.", "Doe-Ray", "", "Jr., LUTC"],
+        ["", "John", "P.", "Doe-Ray", "", "Jr.", "LUTC"],
         []
       );
     });
@@ -191,24 +195,24 @@ describe("parse-full-name", function () {
     it("parses title & suffix mixes", function () {
       verifyName(
         parseFullName("Frau Dr. Sophie Wagner"),
-        ["Frau", "Sophie", "", "Wagner", "", "Dr."],
+        ["Frau", "Sophie", "", "Wagner", "", "", "Dr."],
         []
       );
-      verifyName(parseFullName("Mr. Prof. John Doe"), ["Mr.", "John", "", "Doe", "", "Prof."], []);
-      verifyName(parseFullName("Dr. Prof. John Doe"), ["Dr.", "John", "", "Doe", "", "Prof."], []);
+      verifyName(parseFullName("Mr. Prof. John Doe"), ["Mr.", "John", "", "Doe", "", "", "Prof."], []);
+      verifyName(parseFullName("Dr. Prof. John Doe"), ["Dr.", "John", "", "Doe", "", "", "Prof."], []);
       verifyName(
         parseFullName("Doctor Professor John Doe"),
-        ["Doctor", "John", "", "Doe", "", "Professor"],
+        ["Doctor", "John", "", "Doe", "", "", "Professor"],
         []
       );
       verifyName(
         parseFullName("Dr. Prof. John Albert Doe"),
-        ["Dr.", "John", "Albert", "Doe", "", "Prof."],
+        ["Dr.", "John", "Albert", "Doe", "", "", "Prof."],
         []
       );
       verifyName(
         parseFullName("Dr. Dr. John Albert Doe"),
-        ["Dr.", "John", "Albert", "Doe", "", "Dr."],
+        ["Dr.", "John", "Albert", "Doe", "", "", "Dr."],
         []
       );
     });
@@ -288,7 +292,7 @@ describe("parse-full-name", function () {
         parseFullName("Dr. b.a. Julia Storm", {
           fixCase: 1,
         }),
-        ["Dr.", "Julia", "", "Storm", "", "B.A."],
+        ["Dr.", "Julia", "", "Storm", "", "", "B.A."],
         []
       );
       verifyName(
@@ -331,9 +335,12 @@ describe("parse-full-name", function () {
       ).toBe("Martin");
       expect(
         parseFullName("Mr. Jüan Martinez (Martin) de Lorenzo y Gutierez Jr.", {
-          partToReturn: "suffix",
+          partToReturn: "generation",
         })
       ).toBe("Jr.");
+      expect(
+        parseFullName("Troy A. Hering CPA", { partToReturn: "credential" })
+      ).toBe("CPA");
     });
     it("continues processing, even when fed garbage input", function () {
       verifyName(
@@ -454,7 +461,7 @@ describe("parse-full-name", function () {
       // Test multiple suffixes normalization
       verifyName(
         parseFullName("John Smith jr, esq", { normalize: 1 }),
-        ["", "John", "", "Smith", "", "Jr., Esq."],
+        ["", "John", "", "Smith", "", "Jr.", "Esq."],
         ["Error: 2 suffixes found"]
       );
     });
@@ -469,7 +476,89 @@ describe("parse-full-name", function () {
         parseFullName("dr John Smith", { normalize: 0, fixCase: 0 }),
         ["dr", "John", "", "Smith", "", ""],
         []
+      );    });
+
+    it("does not let a surname-shaped suffix eat the surname", function () {
+      // "ma" is in the suffix list as Master of Arts, and is also one of the
+      // most common Chinese surnames. Stripping it here left a single name
+      // part, which parsed as a last name with NO first name — and a consumer
+      // that requires both then drops the person entirely.
+      verifyName(parseFullName("Jack Ma"), ["", "Jack", "", "Ma", "", ""], []);
+      verifyName(parseFullName("Yo-Yo Ma"), ["", "Yo-Yo", "", "Ma", "", ""], []);
+      verifyName(parseFullName("Ana Ba"), ["", "Ana", "", "Ba", "", ""], []);
+      // A title is removed in a later pass, so it is still among the parts when
+      // the suffix pass runs and must not be miscounted as the surviving name.
+      verifyName(parseFullName("Dr. Jack Ma"), ["Dr.", "Jack", "", "Ma", "", ""], []);
+      // Still a genuine suffix once a first and last name survive without it.
+      verifyName(parseFullName("Wei Li MA"), ["", "Wei", "", "Li", "", "", "MA"], []);
+      verifyName(parseFullName("Ann Ma MD"), ["", "Ann", "", "Ma", "", "", "MD"], []);
+      verifyName(parseFullName("Robert Ma Jr."), ["", "Robert", "", "Ma", "", "Jr."], []);
+    });
+
+    it("uses capitalization as a one-directional signal on ambiguous suffixes", function () {
+      // A degree is written "MA" or "M.A.", never "Ma" — so a title-cased token
+      // is DEFINITELY not a suffix and the collision is settled outright.
+      verifyName(parseFullName("Wei Li Ma"), ["", "Wei", "Li", "Ma", "", ""], []);
+      verifyName(parseFullName("John Smith Ma"), ["", "John", "Smith", "Ma", "", ""], []);
+      // All-caps proves nothing in the other direction, because an all-caps
+      // document renders the surname as "MA" too. It stays a suffix only where
+      // a first and last name survive without it...
+      verifyName(parseFullName("Wei Li MA"), ["", "Wei", "", "Li", "", "", "MA"], []);
+      verifyName(parseFullName("John Smith MA"), ["", "John", "", "Smith", "", "", "MA"], []);
+      // ...and the length guard still catches the all-caps two-part case, which
+      // is exactly how EDGAR writes a conformed name.
+      verifyName(parseFullName("JACK MA"), ["", "Jack", "", "Ma", "", ""], []);
+      verifyName(parseFullName("MA, JACK"), ["", "Jack", "", "Ma", "", ""], []);
+      // The dotted form is unambiguous regardless of the surrounding name.
+      verifyName(parseFullName("Jack Ma, M.A."), ["", "Jack", "", "Ma", "", "", "M.A."], []);
+    });
+
+    it("keeps an unambiguous suffix on a mononym", function () {
+      // The guard above must stay scoped to surname-shaped entries: a blanket
+      // "always keep two parts" rule turns the "Jr." into the first name.
+      verifyName(parseFullName("Smith, Jr."), ["", "", "", "Smith", "", "Jr."], []);
+      verifyName(parseFullName("Jones, Sr."), ["", "", "", "Jones", "", "Sr."], []);
+      verifyName(parseFullName("Public, III"), ["", "", "", "Public", "", "III"], []);
+    });
+
+    it("parses professional certifications as suffixes", function () {
+      // CFP/ChFC/CLU were already listed; CPA and CFA were missing, so the
+      // credential was taken as the surname instead ("Troy A. Hering CPA" gave
+      // last="Cpa" with "A. Hering" buried in the middle name).
+      verifyName(
+        parseFullName("Troy A. Hering CPA"),
+        ["", "Troy", "A.", "Hering", "", "", "CPA"],
+        []
       );
+      verifyName(parseFullName("Susan Chen CFA"), ["", "Susan", "", "Chen", "", "", "CFA"], []);
+      verifyName(parseFullName("Susan Chen, C.P.A."), ["", "Susan", "", "Chen", "", "", "C.P.A."], []);
+    });
+
+    it("returns generation and credential as separate parts", function () {
+      // The whole point of the split: a caller identifying people keys on
+      // `generation` and ignores `credential`, with no classification of its own.
+      const both = parseFullName("John Smith Jr., CPA");
+      expect(both.generation).toBe("Jr.");
+      expect(both.credential).toBe("CPA");
+      expect((both as Record<string, unknown>).suffix).toBeUndefined();
+
+      const plain = parseFullName("Jane Doe");
+      expect(plain.generation).toBe("");
+      expect(plain.credential).toBe("");
+
+      // Several of one kind stay comma-joined within their own field.
+      expect(parseFullName("Gbola Amusa, M.D., CFA").credential).toBe("M.D., CFA");
+    });
+
+    it("recognizes generational suffixes past V", function () {
+      // These were absent from the suffix list, so the numeral was taken as the
+      // SURNAME — the same failure as the "Ma" collision, just rarer.
+      verifyName(parseFullName("John Smith VI"), ["", "John", "", "Smith", "", "VI"], []);
+      verifyName(parseFullName("John Smith VII"), ["", "John", "", "Smith", "", "VII"], []);
+      verifyName(parseFullName("John Smith VIII"), ["", "John", "", "Smith", "", "VIII"], []);
+      // "Vi" is also a given name, so it carries the same surname guard as "Ma":
+      // it may not consume the last remaining name part.
+      verifyName(parseFullName("Jane Vi"), ["", "Jane", "", "Vi", "", ""], []);
     });
   });
 });

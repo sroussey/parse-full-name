@@ -1,4 +1,33 @@
+/**
+ * A parsed name.
+ *
+ * Trailing name parts are returned as TWO fields rather than one `suffix`,
+ * because they answer different questions. `generation` says *which* person —
+ * a junior and a senior sharing a name are two people. `credential` says how
+ * one document chose to annotate a person — the same person is "Isaac Manke"
+ * in one place and "Isaac Manke, Ph.D." in another. Code that identifies or
+ * de-duplicates people must key on the former and ignore the latter; a single
+ * combined `suffix` silently forced callers to do that classification
+ * themselves, against a vocabulary only this library owns.
+ */
 interface ParsedName {
+  title: string;
+  first: string;
+  middle: string;
+  last: string;
+  nick: string;
+  /** Generational suffix: "Jr.", "Sr.", "III". Identity-bearing. */
+  generation: string;
+  /**
+   * Professional credentials as written: "CPA", "Ph.D.", "M.D., CFA".
+   * Comma-joined when a name carries several. NOT identity-bearing.
+   */
+  credential: string;
+  error: string[];
+}
+
+/** The working shape during parsing, before `suffix` is classified. */
+interface InternalParsedName {
   title: string;
   first: string;
   middle: string;
@@ -8,12 +37,100 @@ interface ParsedName {
   error: string[];
 }
 
-type PartToReturn = "title" | "first" | "middle" | "last" | "nick" | "suffix" | "error" | "all";
+type PartToReturn =
+  | "title"
+  | "first"
+  | "middle"
+  | "last"
+  | "nick"
+  | "generation"
+  | "credential"
+  | "error"
+  | "all";
+
+/**
+ * Suffixes that identify a DIFFERENT person rather than annotate the same one.
+ * Everything else the suffix pass finds is a credential.
+ */
+const GENERATIONAL_SUFFIXES = new Set([
+  "jr",
+  "jnr",
+  "junior",
+  "sr",
+  "snr",
+  "senior",
+  "ii",
+  "iii",
+  "iv",
+  "v",
+  "vi",
+  "vii",
+  "viii",
+  "2",
+  "2nd",
+  "second",
+  "3",
+  "3rd",
+  "third",
+  "4",
+  "4th",
+  "fourth",
+  "5",
+  "5th",
+  "fifth",
+]);
+
+/**
+ * Splits the parsed suffix into its identity-bearing and annotation halves.
+ *
+ * A name can carry both at once ("John Smith Jr., CPA") and several of either,
+ * joined by commas, so each part is classified on its own.
+ */
+function classifySuffix(suffix: string): { generation: string; credential: string } {
+  const generation: string[] = [];
+  const credential: string[] = [];
+  for (const raw of suffix.split(",")) {
+    const part = raw.trim();
+    if (part === "") continue;
+    const key = part.replace(/[.\s]/g, "").toLowerCase();
+    (GENERATIONAL_SUFFIXES.has(key) ? generation : credential).push(part);
+  }
+  return { generation: generation.join(", "), credential: credential.join(", ") };
+}
+
+/** Projects the internal working shape onto the public one. */
+function toPublicName(internal: InternalParsedName): ParsedName {
+  const { generation, credential } = classifySuffix(internal.suffix);
+  return {
+    title: internal.title,
+    first: internal.first,
+    middle: internal.middle,
+    last: internal.last,
+    nick: internal.nick,
+    generation,
+    credential,
+    error: internal.error,
+  };
+}
 
 type FixCaseOption = boolean | number; // -1, 0, 1
 type StopOnErrorOption = boolean | number; // 0, 1
 type UseLongListsOption = boolean | number; // 0, 1
 type NormalizeOption = boolean | number; // 0, 1
+
+/**
+ * Suffix-list entries that are also common surnames, so a trailing occurrence is
+ * ambiguous rather than clearly a suffix. Stripping one of these is refused when
+ * it would leave a single name part — see the suffix pass for why that case is
+ * worse than merely inaccurate.
+ */
+const SURNAME_AMBIGUOUS_SUFFIXES = [
+  "ma", // Master of Arts / the Chinese surname 馬
+  "ba", // Bachelor of Arts / a Chinese and West African surname
+  "di", // Diplom / an Italian and Chinese surname
+  "mas", // Master of Applied Science / a Catalan and South Asian surname
+  "vi", // Sixth / a given name (Violet) and a Vietnamese surname
+];
 
 interface ParseFullNameOptions {
   partToReturn?: PartToReturn;
@@ -83,7 +200,7 @@ export function parseFullName(
 
   const conjunctionList: string[] = ["&", "and", "et", "e", "of", "the", "und", "y"];
 
-  const parsedName: ParsedName = {
+  const parsedName: InternalParsedName = {
     title: "",
     first: "",
     middle: "",
@@ -100,7 +217,8 @@ export function parseFullName(
     "middle",
     "last",
     "nick",
-    "suffix",
+    "generation",
+    "credential",
     "error",
   ];
   let partToReturn =
@@ -138,7 +256,10 @@ export function parseFullName(
   }
 
   // If fixCase = 1, fix case of parsedName parts before returning
-  function fixParsedNameCase(fixedCaseName: ParsedName, fixCaseNow: number | boolean): ParsedName {
+  function fixParsedNameCase(
+    fixedCaseName: InternalParsedName,
+    fixCaseNow: number | boolean
+  ): InternalParsedName {
     const forceCaseList: string[] = [
       "e",
       "y",
@@ -209,9 +330,11 @@ export function parseFullName(
     let namePartWords: string[]; // Removed unused outer namePartLabels
 
     if (fixCaseNow) {
+      // Keys come from the INTERNAL object, which still carries `suffix`; the
+      // generation/credential split happens after case-fixing, in toPublicName.
       const namePartLabels = Object.keys(parsedName).filter(
         (v: string) => v !== "error"
-      ) as (keyof Omit<ParsedName, "error">)[];
+      ) as (keyof Omit<InternalParsedName, "error">)[];
 
       for (i = 0, l = namePartLabels.length; i < l; i++) {
         const currentLabel = namePartLabels[i];
@@ -260,7 +383,7 @@ export function parseFullName(
   }
 
   // Normalize parsed name parts for deduplication
-  function normalizeParsedName(nameToNormalize: ParsedName): ParsedName {
+  function normalizeParsedName(nameToNormalize: InternalParsedName): InternalParsedName {
     if (!normalize) return nameToNormalize;
 
     // Normalization mappings
@@ -291,6 +414,9 @@ export function parseFullName(
       iii: "III",
       iv: "IV",
       v: "V",
+      vi: "VI",
+      vii: "VII",
+      viii: "VIII",
       dr: "Dr.",
       "dr.": "Dr.",
       doctor: "Dr.",
@@ -346,7 +472,7 @@ export function parseFullName(
   if (!nameToParse || typeof nameToParse !== "string") {
     handleError("No input");
     const fixedName = fixParsedNameCase(parsedName, fixCase as number);
-    const normalizedName = normalizeParsedName(fixedName);
+    const normalizedName = toPublicName(normalizeParsedName(fixedName));
     if (partToReturn === "all" || !partToReturn) {
       return normalizedName;
     } else {
@@ -383,8 +509,12 @@ export function parseFullName(
     "bba", // Bachelor of Business Administration
     "beng", // Bachelor of Engineering
     "bsc", // Bachelor of Science
+    "c.f.a.", // Chartered Financial Analyst
+    "c.p.a.", // Certified Public Accountant
+    "cfa", // Chartered Financial Analyst
     "cfp", // Certified Financial Planner
     "chfc", // Chartered Financial Consultant
+    "cpa", // Certified Public Accountant
     "clu", // Chartered Life Underwriter
     "d.c.", // Doctor of Chiropractic
     "d.o.", // Doctor of Osteopathic Medicine
@@ -456,6 +586,9 @@ export function parseFullName(
     "snr", // Senior
     "sr", // Senior
     "v", // Fifth
+    "vi", // Sixth
+    "vii", // Seventh
+    "viii", // Eighth
   ];
 
   if (useLongLists) {
@@ -860,7 +993,7 @@ export function parseFullName(
   }
   if (!nameToParse.trim().length) {
     const fixedName = fixParsedNameCase(parsedName, fixCase as number);
-    const normalizedName = normalizeParsedName(fixedName);
+    const normalizedName = toPublicName(normalizeParsedName(fixedName));
     if (partToReturn === "all" || !partToReturn) {
       return normalizedName;
     } else {
@@ -886,6 +1019,42 @@ export function parseFullName(
       nameParts[i].slice(-1) === "."
         ? nameParts[i].slice(0, -1).toLowerCase()
         : nameParts[i].toLowerCase();
+    // A handful of list entries are also real surnames: "ma" (Master of Arts)
+    // is the common Chinese surname, and "ba" / "di" / "mas" collide the same
+    // way. Two guards apply to those — and ONLY those — because an unambiguous
+    // suffix cannot be a surname, and a blanket rule would turn "Smith, Jr."
+    // into a first name of "Jr.".
+    if (SURNAME_AMBIGUOUS_SUFFIXES.includes(partToCheck)) {
+      // Guard 1 — capitalization, which is a ONE-DIRECTIONAL signal. A degree is
+      // written "MA" or "M.A.", never "Ma", so a title-cased (or lowercase)
+      // token is definitely NOT a suffix and the collision is settled outright:
+      // "Wei Li Ma" keeps Ma as the surname. The converse does not hold — an
+      // all-caps document renders the surname as "MA" too — so caps alone
+      // proves nothing and only falls through to the next guard.
+      const raw = nameParts[i].slice(-1) === "." ? nameParts[i].slice(0, -1) : nameParts[i];
+      if (raw !== raw.toUpperCase()) continue;
+
+      // Guard 2 — for the still-ambiguous all-caps case, refuse to strip the
+      // token when doing so would leave a single name part: "JACK MA" is
+      // overwhelmingly a person rather than a mononym holding a Master of Arts.
+      // This is the one that matters most, because the unguarded result was not
+      // merely inaccurate — it left last="Jack" with NO first name, and a
+      // consumer requiring both parts then discards the person entirely.
+      //
+      // Titles are removed in a LATER pass, so they are still sitting in
+      // `nameParts` here and must not be counted as the surviving name: with a
+      // raw length check "DR. JACK MA" reads as three parts and strips "MA"
+      // anyway, re-opening the very collapse this guard exists to stop.
+      const titleListToCheck = titleList.map((value: string) => value.toLowerCase());
+      const isTitlePart = (value: string): boolean => {
+        const bare = value.slice(-1) === "." ? value.slice(0, -1).toLowerCase() : value.toLowerCase();
+        return titleListToCheck.includes(bare) || titleListToCheck.includes(bare + ".");
+      };
+      const remainingNameParts = nameParts.filter(
+        (value: string, index: number) => index !== i && !isTitlePart(value)
+      ).length;
+      if (remainingNameParts < 2) continue;
+    }
     if (suffixList.indexOf(partToCheck) > -1 || suffixList.indexOf(partToCheck + ".") > -1) {
       // Check for suffixes that could also be titles
       const titleListToCheck = titleList.map((value: string) => value.toLowerCase());
@@ -962,7 +1131,7 @@ export function parseFullName(
   }
   if (!nameParts.length) {
     const fixedName = fixParsedNameCase(parsedName, fixCase as number);
-    const normalizedName = normalizeParsedName(fixedName);
+    const normalizedName = toPublicName(normalizeParsedName(fixedName));
     if (partToReturn === "all" || !partToReturn) {
       return normalizedName;
     } else {
@@ -998,7 +1167,7 @@ export function parseFullName(
   }
   if (!nameParts.length) {
     const fixedName = fixParsedNameCase(parsedName, fixCase as number);
-    const normalizedName = normalizeParsedName(fixedName);
+    const normalizedName = toPublicName(normalizeParsedName(fixedName));
     if (partToReturn === "all" || !partToReturn) {
       return normalizedName;
     } else {
@@ -1072,7 +1241,7 @@ export function parseFullName(
   }
   if (!nameParts.length) {
     const fixedName = fixParsedNameCase(parsedName, fixCase as number);
-    const normalizedName = normalizeParsedName(fixedName);
+    const normalizedName = toPublicName(normalizeParsedName(fixedName));
     if (partToReturn === "all" || !partToReturn) {
       return normalizedName;
     } else {
@@ -1093,7 +1262,7 @@ export function parseFullName(
   }
   if (!nameParts.length) {
     const fixedName = fixParsedNameCase(parsedName, fixCase as number);
-    const normalizedName = normalizeParsedName(fixedName);
+    const normalizedName = toPublicName(normalizeParsedName(fixedName));
     if (partToReturn === "all" || !partToReturn) {
       return normalizedName;
     } else {
@@ -1108,7 +1277,7 @@ export function parseFullName(
   parsedName.middle = nameParts.join(" ");
 
   const fixedName = fixParsedNameCase(parsedName, fixCase as number);
-  const normalizedName = normalizeParsedName(fixedName);
+  const normalizedName = toPublicName(normalizeParsedName(fixedName));
   for (const key in normalizedName) {
     const val = normalizedName[key as keyof ParsedName];
     if (typeof val === "string") {
