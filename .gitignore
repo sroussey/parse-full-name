@@ -2,3 +2,4 @@ node_modules
 dist
 *.tsbuildinfo
 *.d.ts
+.DS_Store
