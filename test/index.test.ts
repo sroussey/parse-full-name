@@ -551,10 +551,12 @@ describe("parse-full-name", function () {
     });
 
     it("keeps a bare middle initial out of the title", function () {
-      // "m" is in the title list as the French Monsieur, so a lone "M." was
+      // "m" was in the title list as the French Monsieur, so a lone "M." was
       // stripped as a title and `middle` came back empty — which made
       // "Joseph M. Taylor" and "Joseph Taylor" the same parsed name, and any
-      // caller deduplicating on the parts merged two different people.
+      // caller deduplicating on the parts merged two different people. A bare
+      // "M." is an initial far more often than it is Monsieur, and the entry
+      // bought nothing that "monsieur" does not already cover, so it is gone.
       verifyName(parseFullName("Joseph M. Taylor"), ["", "Joseph", "M.", "Taylor", "", ""], []);
       verifyName(parseFullName("Joseph M Taylor"), ["", "Joseph", "M", "Taylor", "", ""], []);
       verifyName(parseFullName("Taylor, Joseph M."), ["", "Joseph", "M.", "Taylor", "", ""], []);
@@ -571,9 +573,13 @@ describe("parse-full-name", function () {
         ["", "Joseph", "M.", "Taylor", "", "Jr."],
         []
       );
-      // Leading is the one position a title can occupy, so "M." there is still
-      // read as Monsieur.
-      verifyName(parseFullName("M. Dupont"), ["M.", "", "", "Dupont", "", ""], []);
+      // Leading, it is an initial too — which is also the reading that leaves a
+      // usable name, where Monsieur left first="" and a caller requiring both
+      // parts dropped the person.
+      verifyName(parseFullName("M. Dupont"), ["", "M.", "", "Dupont", "", ""], []);
+      verifyName(parseFullName("Dupont, M."), ["", "M.", "", "Dupont", "", ""], []);
+      // The spelled-out title is untouched.
+      verifyName(parseFullName("Monsieur Dupont"), ["Monsieur", "", "", "Dupont", "", ""], []);
     });
 
     it("keeps a bare middle initial out of the suffix", function () {
@@ -588,6 +594,28 @@ describe("parse-full-name", function () {
       verifyName(parseFullName("John Smith V"), ["", "John", "", "Smith", "", "V"], []);
       // The guard is scoped to letters: "2" is a generation and never an initial.
       verifyName(parseFullName("John Smith 2"), ["", "John", "", "Smith", "", "2"], []);
+    });
+
+    it("places the one-letter suffix by the comma, not by the end of the name", function () {
+      // Inverting the name moves the suffix with the surname it belongs to, so
+      // the position that licenses a one-letter suffix moves too: it is the
+      // token before the comma, and the token at the END is a middle initial.
+      verifyName(parseFullName("Smith V, John"), ["", "John", "", "Smith", "", "V"], []);
+      verifyName(parseFullName("Smith V., John"), ["", "John", "", "Smith", "", "V."], []);
+      verifyName(parseFullName("SMITH V, JOHN"), ["", "John", "", "Smith", "", "V"], []);
+      verifyName(parseFullName("Smith, John V."), ["", "John", "V.", "Smith", "", ""], []);
+      verifyName(parseFullName("SMITH, JOHN V"), ["", "John", "V", "Smith", "", ""], []);
+      // A comma of its own still marks it a suffix — the extra-comma pass takes
+      // it, which is what keeps the two inverted forms distinguishable.
+      verifyName(parseFullName("Smith, John, V"), ["", "John", "", "Smith", "", "V"], []);
+      // Longer suffixes never depended on this and must not shift.
+      verifyName(parseFullName("Smith Jr., John"), ["", "John", "", "Smith", "", "Jr."], []);
+      verifyName(parseFullName("Smith, John, Jr."), ["", "John", "", "Smith", "", "Jr."], []);
+      verifyName(
+        parseFullName("Doe-Ray, John P., Jr."),
+        ["", "John", "P.", "Doe-Ray", "", "Jr."],
+        []
+      );
     });
 
     it("recognizes generational suffixes past V", function () {
