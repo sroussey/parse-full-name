@@ -119,6 +119,21 @@ type UseLongListsOption = boolean | number; // 0, 1
 type NormalizeOption = boolean | number; // 0, 1
 
 /**
+ * True for a token that is a single letter, dotted or not: "M", "M.", "v".
+ *
+ * Two list entries are one letter long — "m" (Monsieur) among the titles and
+ * "v" (the fifth) among the suffixes — and both collide with the far commoner
+ * middle initial. The token itself carries no signal either way, so position
+ * settles it: a title precedes the name it modifies and a suffix trails it, so
+ * a one-letter token with a name part on the wrong side of it cannot be either.
+ * Digits are excluded deliberately — "2" is a generational suffix and is never
+ * an initial.
+ */
+function isBareInitial(namePart: string): boolean {
+  return /^\p{L}\.?$/u.test(namePart);
+}
+
+/**
  * Suffix-list entries that are also common surnames, so a trailing occurrence is
  * ambiguous rather than clearly a suffix. Stripping one of these is refused when
  * it would leave a single name part — see the suffix pass for why that case is
@@ -1019,6 +1034,12 @@ export function parseFullName(
       nameParts[i].slice(-1) === "."
         ? nameParts[i].slice(0, -1).toLowerCase()
         : nameParts[i].toLowerCase();
+    // A one-letter token is an initial unless it is the last part standing: a
+    // suffix trails the name, so "Joseph V. Taylor" has a surname AFTER the
+    // "V." and the fifth-generation reading is impossible. Read as a suffix it
+    // took the middle initial out of `middle` entirely, which both loses the
+    // initial and invents a generation the name never claimed.
+    if (isBareInitial(nameParts[i]) && i !== nameParts.length - 1) continue;
     // A handful of list entries are also real surnames: "ma" (Master of Arts)
     // is the common Chinese surname, and "ba" / "di" / "mas" collide the same
     // way. Two guards apply to those — and ONLY those — because an unambiguous
@@ -1145,6 +1166,13 @@ export function parseFullName(
       nameParts[i].slice(-1) === "."
         ? nameParts[i].slice(0, -1).toLowerCase()
         : nameParts[i].toLowerCase();
+    // A one-letter token is an initial unless it leads the name: a title
+    // precedes the name it modifies, so nothing of the name can come before it.
+    // "Joseph M. Taylor" puts a given name ahead of the "M.", which rules out
+    // the French "M." (Monsieur) and leaves the middle initial. Read as a title
+    // it left middle="" — so the name matched a bare "Joseph Taylor" and two
+    // different people deduplicated into one.
+    if (isBareInitial(nameParts[i]) && i > 0) continue;
     if (titleList.indexOf(partToCheck) > -1 || titleList.indexOf(partToCheck + ".") > -1) {
       partsFound = nameParts.splice(i, 1).concat(partsFound);
       if (nameCommas[i] === ",") {

@@ -550,6 +550,46 @@ describe("parse-full-name", function () {
       expect(parseFullName("Gbola Amusa, M.D., CFA").credential).toBe("M.D., CFA");
     });
 
+    it("keeps a bare middle initial out of the title", function () {
+      // "m" is in the title list as the French Monsieur, so a lone "M." was
+      // stripped as a title and `middle` came back empty — which made
+      // "Joseph M. Taylor" and "Joseph Taylor" the same parsed name, and any
+      // caller deduplicating on the parts merged two different people.
+      verifyName(parseFullName("Joseph M. Taylor"), ["", "Joseph", "M.", "Taylor", "", ""], []);
+      verifyName(parseFullName("Joseph M Taylor"), ["", "Joseph", "M", "Taylor", "", ""], []);
+      verifyName(parseFullName("Taylor, Joseph M."), ["", "Joseph", "M.", "Taylor", "", ""], []);
+      verifyName(parseFullName("JOSEPH M. TAYLOR"), ["", "Joseph", "M.", "Taylor", "", ""], []);
+      // A real title in front no longer collides with it — this used to report
+      // "2 titles found" and join them into title="Dr., M.".
+      verifyName(
+        parseFullName("Dr. Joseph M. Taylor"),
+        ["Dr.", "Joseph", "M.", "Taylor", "", ""],
+        []
+      );
+      verifyName(
+        parseFullName("Joseph M. Taylor Jr."),
+        ["", "Joseph", "M.", "Taylor", "", "Jr."],
+        []
+      );
+      // Leading is the one position a title can occupy, so "M." there is still
+      // read as Monsieur.
+      verifyName(parseFullName("M. Dupont"), ["M.", "", "", "Dupont", "", ""], []);
+    });
+
+    it("keeps a bare middle initial out of the suffix", function () {
+      // "v" is in the suffix list as the fifth. A suffix trails the name, so a
+      // "V." with a surname after it cannot be one; read as a suffix it both
+      // lost the initial and invented a generation, which splits one person
+      // into two rather than merging two into one.
+      verifyName(parseFullName("Joseph V. Taylor"), ["", "Joseph", "V.", "Taylor", "", ""], []);
+      verifyName(parseFullName("Joseph V Taylor"), ["", "Joseph", "V", "Taylor", "", ""], []);
+      verifyName(parseFullName("John V. Smith Jr."), ["", "John", "V.", "Smith", "", "Jr."], []);
+      // Trailing, it is still the generational suffix it has always been.
+      verifyName(parseFullName("John Smith V"), ["", "John", "", "Smith", "", "V"], []);
+      // The guard is scoped to letters: "2" is a generation and never an initial.
+      verifyName(parseFullName("John Smith 2"), ["", "John", "", "Smith", "", "2"], []);
+    });
+
     it("recognizes generational suffixes past V", function () {
       // These were absent from the suffix list, so the numeral was taken as the
       // SURNAME — the same failure as the "Ma" collision, just rarer.
