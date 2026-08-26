@@ -119,6 +119,18 @@ type UseLongListsOption = boolean | number; // 0, 1
 type NormalizeOption = boolean | number; // 0, 1
 
 /**
+ * True for a token that is a single letter, dotted or not: "V", "V.", "p".
+ *
+ * One suffix-list entry is a single letter — "v", the fifth — and it collides
+ * with the far commoner middle initial. The token carries no signal either way,
+ * so the suffix pass settles it on where the token sits. Digits are excluded
+ * deliberately: "2" is a generational suffix and is never an initial.
+ */
+function isBareInitial(namePart: string): boolean {
+  return /^\p{L}\.?$/u.test(namePart);
+}
+
+/**
  * Suffix-list entries that are also common surnames, so a trailing occurrence is
  * ambiguous rather than clearly a suffix. Stripping one of these is refused when
  * it would leave a single name part — see the suffix pass for why that case is
@@ -823,7 +835,6 @@ export function parseFullName(
       "lieut col",
       "lieut gen",
       "lord",
-      "m",
       "m l",
       "m r",
       "madame",
@@ -1019,6 +1030,25 @@ export function parseFullName(
       nameParts[i].slice(-1) === "."
         ? nameParts[i].slice(0, -1).toLowerCase()
         : nameParts[i].toLowerCase();
+    // A one-letter token is a middle initial far more often than a suffix, so
+    // it is only read as a suffix in the one position the written form puts a
+    // suffix in — and that position depends on whether the name is inverted.
+    //
+    // Plain order ("John Smith V") puts the suffix last, so a one-letter token
+    // with a name part after it cannot be one: "Joseph V. Taylor" is a middle
+    // initial. Inverted order ("Smith V, John") attaches the suffix to the
+    // surname ahead of the comma, so there the suffix is the token right
+    // before the comma and the trailing token is NOT a suffix: "Smith, John V."
+    // is a middle initial too. An explicitly comma'd "Smith, John, V" is still
+    // a suffix — the later extra-comma pass claims it.
+    if (isBareInitial(nameParts[i])) {
+      const firstCommaIndex = nameCommas.indexOf(",");
+      const isSuffixPosition =
+        firstCommaIndex > -1
+          ? i > 0 && i === firstCommaIndex - 1
+          : i === nameParts.length - 1;
+      if (!isSuffixPosition) continue;
+    }
     // A handful of list entries are also real surnames: "ma" (Master of Arts)
     // is the common Chinese surname, and "ba" / "di" / "mas" collide the same
     // way. Two guards apply to those — and ONLY those — because an unambiguous
