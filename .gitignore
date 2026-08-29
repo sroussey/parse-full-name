@@ -3,3 +3,5 @@ dist
 *.tsbuildinfo
 *.d.ts
 .DS_Store
+# Source corpora for scripts/derive-elided-surnames.ts (re-downloaded on demand)
+.cache/

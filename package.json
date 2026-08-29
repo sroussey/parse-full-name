@@ -4,6 +4,7 @@
   "description": "A function that accepts the full name of a person in any format, parses it, and returns its parts { title, first name, middle name, last name, nickname, suffix, [and any parsing errors] }.",
   "scripts": {
     "test": "bun test",
+    "derive": "bun run scripts/derive-elided-surnames.ts",
     "build": "bun run build-clean && bun run build-js && bun run build-types",
     "build-clean": "rm -rf dist tsconfig.tsbuildinfo",
     "build-js": "bun build src/index.ts --outdir dist",

@@ -37,7 +37,7 @@ Optionally, parseFullName() can also:
   but never throw a JavaScript error, no matter how mangled the input)
 - detect more variations of name prefixes, suffixes, and titles (the default
   detects 29 prefixes, 19 suffixes, 16 titles, and 8 conjunctions, but it
-  can be set to detect 97 prefixes, 23 suffixes, and 204 titles instead)
+  can be set to detect 94 prefixes, 23 suffixes, and 204 titles instead)
 
 If this is not what you're looking for, is overkill for your application, or
 is in the wrong language, check the "Credits" section at the end of this file
@@ -91,7 +91,7 @@ stopOnError (integer, optional): makes parsing errors throw JavaScript errors
 useLongLists (integer, optional): use long prefix, suffix, and title lists
 
 - 0 or false (default) = use default lists (29 prefixes, 19 suffixes, 16 titles)
-- 1 or true = use experimental long lists (97 prefixes, 23 suffixes, 204 titles)
+- 1 or true = use experimental long lists (94 prefixes, 23 suffixes, 204 titles)
   Note: The alternate long lists are experimental and have not been tested.
   Be especially careful using the long prefix list, which may incorrectly
   detect "Ben" as a prefix, which is common in middle-eastern names,
@@ -146,6 +146,61 @@ assert.strictEqual(name.generation, "Jr.");
 assert.strictEqual(name.credential, "");
 assert.strictEqual(name.error, []);
 ```
+
+## Elided apostrophe prefixes
+
+`Conner O Brien` and `John A Doe` are the same three-token shape, but the first
+is one first name and one surname (O'Brien, with the apostrophe stripped by some
+upstream system) and the second is a first name, a middle initial and a surname.
+Any single rule for both gets one of them wrong, and both failures rewrite a name
+part: read as a prefix, `John A Doe` yields `last: "A Doe"`; read as an initial,
+`Conner O Brien` yields `last: "Brien"`. A caller matching on `last` misses the
+record either way.
+
+The parser settles it on the word *after* the letter, against a table of surname
+stems in `src/elided-surnames.ts`:
+
+```ts
+parseFullName("Conner O Brien").last; // "O Brien"
+parseFullName("John A Doe").middle; // "A"
+parseFullName("Sean O Sullivan").last; // "O Sullivan"
+parseFullName("Michael O Ryan").middle; // "O"  — Ryan is its own surname
+parseFullName("John O. Brien").middle; // "O."  — a dot settles it outright
+```
+
+That table is **derived, not hand-written**. Regenerate it with:
+
+```sh
+bun run derive          # add --report to see what was kept, dropped and why
+```
+
+`scripts/derive-elided-surnames.ts` counts English Wikipedia page titles that
+read like a person's name, and keeps a stem only where the elided reading beats
+the reading in which the letter is a middle initial and the stem is the whole
+surname:
+
+```
+elided  ~ people(X'Stem)
+initial ~ people(Stem) × P(a given name starts with X)
+```
+
+That second factor is the one that matters. Wikipedia's Sullivans outnumber its
+O'Sullivans nearly 3 to 1, so comparing the two spellings alone would discard
+O'Sullivan — but a middle initial is almost never `O`, and once that is priced
+in, `O Sullivan` wins by 21×. The same arithmetic drops `O'Ryan`, `O'Moore`,
+`D'Silva` and `D'Cruz`, whose stems are common surnames in their own right.
+
+The US Census surname file is deliberately **not** a source. It folds `O'BRIEN`
+to `OBRIEN`, which is the very elision this table exists to undo, so it cannot
+attest that a name takes an apostrophe — and its folded counts collide, scoring
+`D'Avis` with every Davis in America, `L'Ang` with every Lang and `L'Amb` with
+every Lamb. The script documents this at length; read it before editing the
+table by hand, since a hand edit is lost on the next regeneration.
+
+Currently 231 stems across `O'`, `D'` and `L'`. Two known limits: a stem nobody
+notable carries is missing, and Dutch `'t` / `'s` (as in `Van 't Hoff`) is not
+handled, because `T` and `S` are far commoner as middle initials than any
+evidence for the Dutch reading could outweigh.
 
 ## Upgrading from 2.x
 

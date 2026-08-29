@@ -1,3 +1,5 @@
+import { ELIDED_SURNAME_STEMS } from "./elided-surnames.js";
+
 /**
  * A parsed name.
  *
@@ -128,6 +130,39 @@ type NormalizeOption = boolean | number; // 0, 1
  */
 function isBareInitial(namePart: string): boolean {
   return /^\p{L}\.?$/u.test(namePart);
+}
+
+/**
+ * True when a bare single letter is the elided head of the surname that follows
+ * - "O Brien" for O'Brien - rather than a middle initial.
+ *
+ * The letter alone cannot settle this. "Conner O Brien" and "John A Doe" are
+ * the same three-token shape, and whichever rule reads one of them correctly
+ * reads the other wrong: as a prefix, "John A Doe" comes back with last="A Doe"
+ * and no middle; as an initial, "Conner O Brien" comes back with last="Brien",
+ * a surname that is not this person's. Both failures rewrite a name part, which
+ * is worse than an imperfect one - a caller matching on `last` misses the
+ * record either way.
+ *
+ * What separates the two is the word AFTER the letter, so the join is licensed
+ * by that word and nothing else. A letter with no such licence stays an initial
+ * - the commoner reading, and the one that still leaves a usable first and last
+ * when it is wrong.
+ *
+ * The licence itself is counted, not judged: `ELIDED_SURNAME_STEMS` is derived
+ * from how many people write each spelling, and a stem is in it only where the
+ * elided reading wins. That is why "O Brien" joins and "O Ryan" does not, and
+ * why nothing here needs to know that Brien is Irish. See
+ * scripts/derive-elided-surnames.ts.
+ *
+ * A dot is the writer settling it outright: "O. Brien" is an initial.
+ */
+function isElidedSurnamePrefix(namePart: string, nextPart: string): boolean {
+  if (!/^\p{L}$/u.test(namePart)) return false;
+  const stems = ELIDED_SURNAME_STEMS[namePart.toLowerCase()];
+  if (!stems) return false;
+  const next = nextPart.toLowerCase();
+  return stems.has(next) || stems.has(next.split("-")[0]);
 }
 
 /**
@@ -605,7 +640,10 @@ export function parseFullName(
 
   if (useLongLists) {
     prefixList = [
-      "a",
+      // No bare single letters here. A lone letter between two names is a
+      // middle initial far more often than a prefix, and joining it blindly
+      // cost "John A Doe" its surname; `isElidedSurnamePrefix` handles the
+      // letters that really do elide ("O Brien") on evidence instead.
       "ab",
       "antune",
       "ap",
@@ -641,7 +679,6 @@ export function parseFullName(
       "di",
       "dos",
       "du",
-      "e",
       "ek",
       "el",
       "escob",
@@ -677,7 +714,6 @@ export function parseFullName(
       "nord",
       "norr",
       "ny",
-      "o",
       "ua",
       "ui'",
       "öfver",
@@ -1202,6 +1238,20 @@ export function parseFullName(
       return normalizedName;
     } else {
       return normalizedName[partToReturn] as any;
+    }
+  }
+
+  // Join an elided apostrophe prefix to the name it heads ("O Brien"), leaving
+  // every other single letter as the initial it usually is. This runs before the
+  // general prefix join so the joined surname is one token by the time a real
+  // prefix in front of it ("de la O Brien") looks at what follows.
+  if (nameParts.length > 1) {
+    for (i = nameParts.length - 2; i >= 0; i--) {
+      if (isElidedSurnamePrefix(nameParts[i], nameParts[i + 1])) {
+        nameParts[i] = nameParts[i] + " " + nameParts[i + 1];
+        nameParts.splice(i + 1, 1);
+        nameCommas.splice(i + 1, 1);
+      }
     }
   }
 

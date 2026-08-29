@@ -618,6 +618,117 @@ describe("parse-full-name", function () {
       );
     });
 
+    it("tells an elided apostrophe prefix from a middle initial", function () {
+      // "Conner O Brien" and "John A Doe" are the same three-token shape, and
+      // one rule for both gets one of them wrong. Every bare letter used to be
+      // read as a prefix when it appeared in the long list, so "John A Doe"
+      // came back with last="A Doe" and no middle — a surname this person does
+      // not have, which is exactly as bad as losing the "O" off O'Brien.
+      verifyName(parseFullName("Conner O Brien"), ["", "Conner", "", "O Brien", "", ""], []);
+      verifyName(parseFullName("John A Doe"), ["", "John", "A", "Doe", "", ""], []);
+
+      // The word AFTER the letter is what settles it, and it settles it on
+      // counted evidence rather than on the letter looking Irish: the join
+      // stands only where more people write the elided spelling than could
+      // plausibly be writing the letter as a middle initial. So the same letter
+      // goes both ways on the same shape.
+      verifyName(parseFullName("Sean O Neill"), ["", "Sean", "", "O Neill", "", ""], []);
+      verifyName(parseFullName("John O Doe"), ["", "John", "O", "Doe", "", ""], []);
+      verifyName(parseFullName("David D Angelo"), ["", "David", "", "D Angelo", "", ""], []);
+      verifyName(parseFullName("David D Smith"), ["", "David", "D", "Smith", "", ""], []);
+      verifyName(parseFullName("Jean L Heureux"), ["", "Jean", "", "L Heureux", "", ""], []);
+      verifyName(parseFullName("Jean L Smith"), ["", "Jean", "L", "Smith", "", ""], []);
+
+      // A dot is the writer settling it outright, and beats the stem table.
+      verifyName(parseFullName("John O. Brien"), ["", "John", "O.", "Brien", "", ""], []);
+      verifyName(parseFullName("John A. Doe"), ["", "John", "A.", "Doe", "", ""], []);
+      // The apostrophe never split the name in the first place.
+      verifyName(parseFullName("Conner O'Brien"), ["", "Conner", "", "O'Brien", "", ""], []);
+
+      // The join survives the rest of the passes: case fixing, a suffix, a
+      // title, a real prefix in front, and a double-barrelled surname behind.
+      verifyName(parseFullName("CONNER O BRIEN"), ["", "Conner", "", "O Brien", "", ""], []);
+      verifyName(parseFullName("conner o brien"), ["", "Conner", "", "O Brien", "", ""], []);
+      verifyName(
+        parseFullName("Conner O Brien Jr."),
+        ["", "Conner", "", "O Brien", "", "Jr."],
+        []
+      );
+      verifyName(
+        parseFullName("Dr. Sean P O Sullivan"),
+        ["Dr.", "Sean", "P", "O Sullivan", "", ""],
+        []
+      );
+      verifyName(
+        parseFullName("Maria de la O Brien"),
+        ["", "Maria", "", "de la O Brien", "", ""],
+        []
+      );
+      verifyName(
+        parseFullName("Conner O Brien-Smith"),
+        ["", "Conner", "", "O Brien-Smith", "", ""],
+        []
+      );
+
+      // Inverted, the surname comes first and the letter at the END is an
+      // initial again — position decides which side of the comma the letter is
+      // on, the stem table decides nothing there.
+      verifyName(parseFullName("O Brien, Conner"), ["", "Conner", "", "O Brien", "", ""], []);
+      verifyName(parseFullName("Doe, John A"), ["", "John", "A", "Doe", "", ""], []);
+      verifyName(parseFullName("Brien, Conner O"), ["", "Conner", "O", "Brien", "", ""], []);
+    });
+
+    it("keeps the elided reading where it wins the count and drops it where it loses", function () {
+      // These are the cases the derivation exists to get right, and the ones a
+      // hand-written list of Irish surnames gets wrong in both directions.
+      //
+      // Kept, though the bare stem is the commoner surname: Wikipedia's
+      // Sullivans outnumber its O'Sullivans nearly 3 to 1, so a rule that just
+      // compared the two spellings would throw O'Sullivan away. It survives
+      // because the competing reading needs the letter to be a middle initial
+      // as well, and a middle initial is almost never O.
+      verifyName(parseFullName("Sean O Sullivan"), ["", "Sean", "", "O Sullivan", "", ""], []);
+      verifyName(parseFullName("Kate O Reilly"), ["", "Kate", "", "O Reilly", "", ""], []);
+      verifyName(parseFullName("Ryan D Souza"), ["", "Ryan", "", "D Souza", "", ""], []);
+
+      // Dropped, though the apostrophe spelling is a real surname: Ryan, Moore,
+      // Day, Silva and Cruz are common enough on their own that the initial
+      // reading wins even against a genuine O' or D' name. Being attested is
+      // not enough; it has to be the likelier of the two readings.
+      verifyName(parseFullName("Michael O Ryan"), ["", "Michael", "O", "Ryan", "", ""], []);
+      verifyName(parseFullName("Robert O Moore"), ["", "Robert", "O", "Moore", "", ""], []);
+      verifyName(parseFullName("Susan O Day"), ["", "Susan", "O", "Day", "", ""], []);
+      verifyName(parseFullName("Alan D Silva"), ["", "Alan", "D", "Silva", "", ""], []);
+      verifyName(parseFullName("Maria D Cruz"), ["", "Maria", "D", "Cruz", "", ""], []);
+
+      // A rare surname whose letter-prefixed form is a common name must NOT be
+      // swallowed. Deriving this from the US Census surname file would have
+      // joined all three, because that file folds the apostrophe away and so
+      // scores "L'Ang" with every Lang, "L'Amb" with every Lamb and "D'Avis"
+      // with every Davis in America.
+      verifyName(parseFullName("David L Ang"), ["", "David", "L", "Ang", "", ""], []);
+      verifyName(parseFullName("Karen L Amb"), ["", "Karen", "L", "Amb", "", ""], []);
+      verifyName(parseFullName("Joan D Avis"), ["", "Joan", "D", "Avis", "", ""], []);
+
+      // Letters outside the eliding set are never candidates, however the words
+      // around them fall.
+      verifyName(parseFullName("Robert A Bell"), ["", "Robert", "A", "Bell", "", ""], []);
+      verifyName(parseFullName("John M Ellis"), ["", "John", "M", "Ellis", "", ""], []);
+    });
+
+    it("reads a bare 'e' between surnames as the conjunction it is", function () {
+      // "e" sat in the prefix list as well, and the prefix pass runs first, so
+      // "Souza e Silva" was split into first="Souza", last="e Silva". It is the
+      // Portuguese conjunction, and the conjunction pass already knows it —
+      // dropping the bare letters from the prefix list is what lets it through.
+      verifyName(parseFullName("Souza e Silva"), ["", "", "", "Souza e Silva", "", ""], []);
+      verifyName(
+        parseFullName("Jose Garcia y Lopez"),
+        ["", "Jose", "", "Garcia y Lopez", "", ""],
+        []
+      );
+    });
+
     it("recognizes generational suffixes past V", function () {
       // These were absent from the suffix list, so the numeral was taken as the
       // SURNAME — the same failure as the "Ma" collision, just rarer.
