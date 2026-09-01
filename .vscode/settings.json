@@ -6,7 +6,6 @@
   "editor.formatOnPaste": false,
   "editor.formatOnType": false,
   "editor.formatOnSave": true,
-  "eslint.format.enable": true,
   "files.exclude": {
     // "**/dist": true,
     // "**/build": true,
@@ -20,9 +19,8 @@
     "**/*.tsbuildinfo": true
   },
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
+    "source.fixAll.oxc": "explicit"
   },
-  "eslint.codeActionsOnSave.rules": null,
   "explorer.autoRevealExclude": {
     "data-out/**": true,
     "data-in/**": true

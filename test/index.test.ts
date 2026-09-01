@@ -383,9 +383,9 @@ describe("parse-full-name", function () {
     });
 
     it("returns warnings for null/undefined names", function () {
-      // @ts-ignore
+      // @ts-expect-error - null is not a string; the runtime guard is what is under test
       verifyName(parseFullName(null), ["", "", "", "", "", ""], ["Error: No input"]);
-      // @ts-ignore
+      // @ts-expect-error - nameToParse is required; the runtime guard is what is under test
       verifyName(parseFullName(), ["", "", "", "", "", ""], ["Error: No input"]);
     });
     it("will throw errors, when specified", function () {
