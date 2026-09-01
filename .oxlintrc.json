@@ -1,0 +1,40 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+
+  // `plugins` REPLACES oxlint's defaults. `unicorn` and `oxc` stay off: this
+  // package has never been linted, and pulling in two more rule families on top
+  // of that is worth doing deliberately rather than in the same change.
+  "plugins": ["typescript"],
+
+  "categories": { "correctness": "error" },
+
+  "env": { "es2024": true, "node": true },
+
+  "ignorePatterns": ["dist", "node_modules"],
+
+  "rules": {
+    // From `typescript-eslint/recommended`, which the `.cursor` rules follow;
+    // not in oxlint's `correctness`.
+    "typescript/ban-ts-comment": "error",
+    "typescript/no-array-constructor": "error",
+    "typescript/no-empty-object-type": "error",
+    "typescript/no-namespace": "error",
+    "typescript/no-require-imports": "error",
+    "typescript/no-unnecessary-type-constraint": "error",
+    "typescript/no-unsafe-function-type": "error",
+
+    "no-unused-vars": "off",
+    "typescript/no-explicit-any": "off",
+
+    // ---------------------------------------------------------------------
+    // Type-aware rules run only under `oxlint --type-aware`, which shells out
+    // to tsgolint. Everything type-aware in `correctness` is on except these,
+    // which the parser does not pass yet; the counts are what they report today.
+    // ---------------------------------------------------------------------
+    "typescript/no-base-to-string": "off", // 2
+    // Reports "explicit undefined is unnecessary on an optional parameter",
+    // which is the house style (`string | undefined` over `?: string`) rather
+    // than a defect. Off for good, not pending a cleanup.
+    "typescript/no-duplicate-type-constituents": "off"
+  }
+}

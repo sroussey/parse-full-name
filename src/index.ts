@@ -1015,7 +1015,7 @@ export function parseFullName(
   }
 
   // Nickname: remove and store parts with surrounding punctuation as nicknames
-  regex = /\s(?:[‘’']([^‘’']+)[‘’']|[“”"]([^“”"]+)[“”"]|\[([^\]]+)\]|\(([^\)]+)\)),?\s/g;
+  regex = /\s(?:[‘’']([^‘’']+)[‘’']|[“”"]([^“”"]+)[“”"]|\[([^\]]+)\]|\(([^)]+)\)),?\s/g;
   partFound = (" " + nameToParse + " ").match(regex);
   if (partFound) partsFound = partsFound.concat(partFound);
   partsFoundCount = partsFound.length;

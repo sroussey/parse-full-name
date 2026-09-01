@@ -160,6 +160,10 @@ function personSurname(title: string): string | null {
 
 const CANDIDATE = /^([A-Za-z])'([A-Za-z][A-Za-z-]*)$/;
 
+/** `[letter, list]` entries by letter -- the default sort stringifies the pair. */
+const byLetter = (a: readonly [string, unknown], b: readonly [string, unknown]): number =>
+  a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0;
+
 async function main() {
   const report = process.argv.includes("--report");
   const titlesPath = await cached(TITLES_URL, "enwiki-titles.gz");
@@ -234,7 +238,7 @@ async function main() {
   for (const list of kept.values()) list.sort((a, b) => b.people - a.people);
 
   if (report) {
-    for (const [letter, list] of [...kept].sort()) {
+    for (const [letter, list] of [...kept].sort(byLetter)) {
       console.error(`\n=== ${letter}' kept ${list.length}`);
       for (const r of list.slice(0, 22))
         console.error(`  ${letter}'${r.stem.padEnd(14)} people=${String(r.people).padStart(5)} bare=${String(r.barePeople).padStart(5)} odds=${r.odds.toFixed(1)}`);
@@ -251,7 +255,7 @@ async function main() {
 
   const total = [...kept.values()].reduce((s, l) => s + l.length, 0);
   const body = [...kept]
-    .sort()
+    .sort(byLetter)
     .map(([letter, list]) => {
       const stems = list.map((r) => r.stem).sort();
       const top = list.slice(0, 3).map((r) => `${letter.toUpperCase()}'${r.stem}`);
@@ -315,4 +319,4 @@ ${body}
   console.error(`\nwrote src/elided-surnames.ts — ${total} stems across ${kept.size} letters`);
 }
 
-main();
+await main();
