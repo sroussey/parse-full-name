@@ -66,6 +66,45 @@ describe("parse-full-name", function () {
       verifyName(parseFullName("Jüan de la Véña"), ["", "Jüan", "", "de la Véña", "", ""], []);
       verifyName(parseFullName("de la Véña, Jüan"), ["", "Jüan", "", "de la Véña", "", ""], []);
     });
+    it("reads a leading particle in natural order as the first name", function () {
+      // Each used to come back as a surname with no first name at all.
+      verifyName(parseFullName("Ben Horowitz"), ["", "Ben", "", "Horowitz", "", ""], []);
+      verifyName(parseFullName("BEN HOROWITZ"), ["", "Ben", "", "Horowitz", "", ""], []);
+      verifyName(parseFullName("Al Gore"), ["", "Al", "", "Gore", "", ""], []);
+      verifyName(parseFullName("Van Morrison"), ["", "Van", "", "Morrison", "", ""], []);
+      verifyName(parseFullName("Mac Taylor"), ["", "Mac", "", "Taylor", "", ""], []);
+      verifyName(parseFullName("Ben A. Horowitz"), ["", "Ben", "A.", "Horowitz", "", ""], []);
+      // The particle still joins inside a name, and wherever a comma puts the surname first.
+      verifyName(parseFullName("Mohamed Ben Ali"), ["", "Mohamed", "", "Ben Ali", "", ""], []);
+      verifyName(parseFullName("Ben Ali, Mohamed"), ["", "Mohamed", "", "Ben Ali", "", ""], []);
+      verifyName(parseFullName("Horowitz, Ben"), ["", "Ben", "", "Horowitz", "", ""], []);
+      verifyName(parseFullName("Ben E Muraskin"), ["", "Ben", "E", "Muraskin", "", ""], []);
+      verifyName(parseFullName("Robert E Flaherty"), ["", "Robert", "E", "Flaherty", "", ""], []);
+      verifyName(parseFullName("ROBERT E FLAHERTY"), ["", "Robert", "E", "Flaherty", "", ""], []);
+      verifyName(parseFullName("Van P. Whitfield"), ["", "Van", "P.", "Whitfield", "", ""], []);
+      // A particle in a middle name keeps its surname case.
+      verifyName(parseFullName("Patrick van den Bossche"), ["", "Patrick", "van den", "Bossche", "", ""], []);
+      // A particle that is never a given name still heads the surname.
+      verifyName(parseFullName("de Notaristefani Carlo"), ["", "de Notaristefani", "", "Carlo", "", ""], []);
+    });
+    it("keeps a name-like title as a name when it is the name", function () {
+      // Stripped as a title, each left a single name part.
+      verifyName(parseFullName("Dean Stoecker"), ["", "Dean", "", "Stoecker", "", ""], []);
+      verifyName(parseFullName("Baron Carlson"), ["", "Baron", "", "Carlson", "", ""], []);
+      verifyName(parseFullName("Matthew Prince"), ["", "Matthew", "", "Prince", "", ""], []);
+      verifyName(parseFullName("Steven Major"), ["", "Steven", "", "Major", "", ""], []);
+      verifyName(parseFullName("David Judge"), ["", "David", "", "Judge", "", ""], []);
+      verifyName(parseFullName("Lowell Baron"), ["", "Lowell", "", "Baron", "", ""], []);
+      verifyName(parseFullName("William Eng"), ["", "William", "", "Eng", "", ""], []);
+      verifyName(parseFullName("Jason Alderman"), ["", "Jason", "", "Alderman", "", ""], []);
+      verifyName(parseFullName("William Deacon"), ["", "William", "", "Deacon", "", ""], []);
+      // Still a title beside a full name, and a title that is never a name is still stripped.
+      verifyName(parseFullName("Judge David Smith"), ["Judge", "David", "", "Smith", "", ""], []);
+      verifyName(parseFullName("Dean Y Shigemura"), ["", "Dean", "Y", "Shigemura", "", ""], []);
+      verifyName(parseFullName("Dean John Smith"), ["Dean", "John", "", "Smith", "", ""], []);
+      verifyName(parseFullName("Dr. Smith"), ["Dr.", "", "", "Smith", "", ""], []);
+      verifyName(parseFullName("Lord Farmer"), ["Lord", "", "", "Farmer", "", ""], []);
+    });
     it("parses compound last names", function () {
       verifyName(
         parseFullName("Jüan Martinez de Lorenzo y Gutierez"),

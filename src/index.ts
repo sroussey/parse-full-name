@@ -157,6 +157,25 @@ function isBareInitial(namePart: string): boolean {
  *
  * A dot is the writer settling it outright: "O. Brien" is an initial.
  */
+/**
+ * Titles that are also common given names or surnames. Each is still a title
+ * whenever a first and a last name remain beside it; see the title pass.
+ */
+/**
+ * Surname particles that are also common given names — the only ones read as a
+ * first name when they lead a name written in natural order.
+ */
+const GIVEN_NAME_PARTICLES: ReadonlySet<string> = new Set(["al", "beau", "ben", "mac", "van"]);
+
+const NAME_LIKE_TITLES: ReadonlySet<string> = new Set([
+  "baron",
+  "dean",
+  "judge",
+  "major",
+  "prince",
+  "princess",
+]);
+
 function isElidedSurnamePrefix(namePart: string, nextPart: string): boolean {
   if (!/^\p{L}$/u.test(namePart)) return false;
   const stems = ELIDED_SURNAME_STEMS[namePart.toLowerCase()];
@@ -391,6 +410,19 @@ export function parseFullName(
             forceCaseListIndex = forceCaseList
               .map((v: string) => v.toLowerCase())
               .indexOf(namePartWords[j].toLowerCase());
+            // The lower-case particles and conjunctions ("van", "e") are lower
+            // case inside a SURNAME — "van Gogh", "Souza e Silva". As a given
+            // name or an initial they are capitalized like any other: "Van
+            // Morrison", "Robert E. Flaherty". Only those two readings: a
+            // particle elsewhere in a first or middle name keeps its case.
+            if (
+              forceCaseListIndex > -1 &&
+              (namePartWords[j].length === 1
+                ? currentLabel === "first" || currentLabel === "middle"
+                : currentLabel === "first" && GIVEN_NAME_PARTICLES.has(namePartWords[j].toLowerCase()))
+            ) {
+              forceCaseListIndex = -1;
+            }
             if (forceCaseListIndex > -1) {
               // Set case of words in forceCaseList
               namePartWords[j] = forceCaseList[forceCaseListIndex];
@@ -1206,12 +1238,37 @@ export function parseFullName(
   }
 
   // Title: remove and store matching parts as titles
+  const isTitleWord = (value: string): boolean => {
+    const bare = value.slice(-1) === "." ? value.slice(0, -1).toLowerCase() : value.toLowerCase();
+    return titleList.indexOf(bare) > -1 || titleList.indexOf(bare + ".") > -1;
+  };
   for (l = nameParts.length, i = l - 1; i >= 0; i--) {
     partToCheck =
       nameParts[i].slice(-1) === "."
         ? nameParts[i].slice(0, -1).toLowerCase()
         : nameParts[i].toLowerCase();
     if (titleList.indexOf(partToCheck) > -1 || titleList.indexOf(partToCheck + ".") > -1) {
+      // Kept as a NAME when stripping it would leave no first-and-last pair,
+      // in two cases. Stripped regardless, each came back with a single name
+      // part — no first name, or no surname — which a consumer requiring both
+      // discards as unparseable.
+      //
+      // - The LAST word of a name written in natural order: a title precedes a
+      //   name, so a title word in the surname's place is the surname —
+      //   "William Eng", "Jason Alderman", "Matthew Prince", "Steven Major".
+      // - A title that is also a common given name, wherever it sits: "Dean
+      //   Stoecker", "Baron Carlson".
+      //
+      // With a first and a last name still beside it ("Judge David Smith") it is
+      // read as the title it is, and so is a leading title that is never a given
+      // name: "Dr. Smith" and "Lord Farmer" name no first name, correctly.
+      const others = nameParts.filter((value, index) => index !== i && !isTitleWord(value));
+      const trailingInNaturalOrder = i === nameParts.length - 1 && !nameCommas.includes(",");
+      if (others.length < 2 && trailingInNaturalOrder) continue;
+      // A name-like title needs two NAMES beside it, not a name and an initial:
+      // "Dean Y Shigemura" is Dean Y. Shigemura, not Y. Shigemura, a dean.
+      const isInitial = (value: string): boolean => value.replace(/\.$/, "").length === 1;
+      if (NAME_LIKE_TITLES.has(partToCheck) && others.filter((value) => !isInitial(value)).length < 2) continue;
       partsFound = nameParts.splice(i, 1).concat(partsFound);
       if (nameCommas[i] === ",") {
         // Keep comma, either before or after
@@ -1255,9 +1312,19 @@ export function parseFullName(
     }
   }
 
-  // Join name prefixes to following names
+  // Join name prefixes to following names — except a particle that is also a
+  // common given name, leading a name written in natural order. There it is
+  // the first name: "Ben Horowitz", "Al Gore", "Van Morrison", "Mac Taylor".
+  // Joined as a surname particle, each came back as a surname with no first
+  // name at all. A comma puts the surname first ("Ben Ali, Mohamed", "Van Gogh,
+  // Vincent"), a particle inside the name ("Mohamed Ben Ali") is still joined,
+  // and so is a leading particle that is never a given name — "de
+  // Notaristefani Carlo", written surname-first without a comma, keeps its
+  // surname in one piece.
+  const naturalOrder = !nameCommas.includes(",");
   if (nameParts.length > 1) {
     for (i = nameParts.length - 2; i >= 0; i--) {
+      if (i === 0 && naturalOrder && GIVEN_NAME_PARTICLES.has(nameParts[0].toLowerCase())) continue;
       if (prefixList.indexOf(nameParts[i].toLowerCase()) > -1) {
         nameParts[i] = nameParts[i] + " " + nameParts[i + 1];
         nameParts.splice(i + 1, 1);
@@ -1266,9 +1333,23 @@ export function parseFullName(
     }
   }
 
-  // Join conjunctions to surrounding names
+  // Join conjunctions to surrounding names — but not a CAPITAL single letter
+  // between the only two other words of a name in natural order. That is a
+  // middle initial: "Robert E Flaherty", "ROBERT E FLAHERTY" and "Ben E
+  // Muraskin" all came back as one surname with no first name at all. The
+  // conjunction is written lower case — "Souza e Silva", still one surname.
   if (nameParts.length > 2) {
     for (i = nameParts.length - 3; i >= 0; i--) {
+      const middleWord = nameParts[i + 1];
+      if (
+        i === 0 &&
+        naturalOrder &&
+        nameParts.length === 3 &&
+        middleWord.length === 1 &&
+        middleWord !== middleWord.toLowerCase()
+      ) {
+        continue;
+      }
       if (conjunctionList.indexOf(nameParts[i + 1].toLowerCase()) > -1) {
         nameParts[i] = nameParts[i] + " " + nameParts[i + 1] + " " + nameParts[i + 2];
         nameParts.splice(i + 1, 2);
