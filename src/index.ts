@@ -1132,7 +1132,14 @@ export function parseFullName(
       const raw = nameParts[i].slice(-1) === "." ? nameParts[i].slice(0, -1) : nameParts[i];
       if (raw !== raw.toUpperCase()) continue;
 
-      // Guard 2 — for the still-ambiguous all-caps case, refuse to strip the
+      // Guard 2 — position. A credential trails the name; it never sits between
+      // two name words. Later suffixes were already spliced out by this
+      // right-to-left pass, so a part still following this one, with no comma
+      // between them, is more name: "RESSI DI CERVIA, GREGORY" is the surname
+      // particle of "Ressi di Cervia", not a Diplom between two surname words.
+      if (i < nameParts.length - 1 && nameCommas[i] !== ",") continue;
+
+      // Guard 3 — for the still-ambiguous all-caps case, refuse to strip the
       // token when doing so would leave a single name part: "JACK MA" is
       // overwhelmingly a person rather than a mononym holding a Master of Arts.
       // This is the one that matters most, because the unguarded result was not

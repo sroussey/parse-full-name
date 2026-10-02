@@ -552,6 +552,29 @@ describe("parse-full-name", function () {
       verifyName(parseFullName("Jack Ma, M.A."), ["", "Jack", "", "Ma", "", "", "M.A."], []);
     });
 
+    it("keeps an all-caps ambiguous suffix that sits between name words", function () {
+      // Schedule A writes "SURNAME, FIRST, MIDDLE" in capitals. "DI" here is the
+      // particle of "Ressi di Cervia", and stripping it as a Diplom gave the
+      // surname "Ressi Cervia", which matched no spelling of the person.
+      verifyName(
+        parseFullName("RESSI DI CERVIA, GREGORY ADEODATO"),
+        ["", "Gregory", "Adeodato", "Ressi di Cervia", "", ""],
+        []
+      );
+      verifyName(parseFullName("JOHN DI MAGGIO"), ["", "John", "", "di Maggio", "", ""], []);
+      // Still a credential where it trails, before a comma or another suffix.
+      verifyName(
+        parseFullName("John Smith MA, PhD"),
+        ["", "John", "", "Smith", "", "", "MA, PhD"],
+        ["Error: 2 suffixes found"]
+      );
+      verifyName(
+        parseFullName("John Smith MA PhD"),
+        ["", "John", "", "Smith", "", "", "MA, PhD"],
+        ["Error: 2 suffixes found"]
+      );
+    });
+
     it("keeps an unambiguous suffix on a mononym", function () {
       // The guard above must stay scoped to surname-shaped entries: a blanket
       // "always keep two parts" rule turns the "Jr." into the first name.
